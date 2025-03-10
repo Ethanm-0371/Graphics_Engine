@@ -186,6 +186,63 @@ void Init(App* app)
     // - vaos
     // - programs (and retrieve uniform indices)
     // - textures
+    struct VertexV3V2
+    {
+        glm::vec3 pos;
+        glm::vec2 uv;
+    };
+
+    const VertexV3V2 vertices[] =
+    {
+        { glm::vec3(-0.5, -0.5, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
+        { glm::vec3(0.5, -0.5, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
+        { glm::vec3(0.5, 0.5, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
+        { glm::vec3(-0.5, 0.5, 0.0),    glm::vec2(0.0, 1.0) } //top-left
+    };
+
+    const u16 indices[] =
+    {
+        0,1,2,
+        0,2,3
+    };
+
+    //Prepare geometry
+    //VBO
+    glGenBuffers(1, &app->embeddedVertices);
+    glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    //EBO
+    glGenBuffers(1, &app->embeddedElements);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    //VAO
+    glGenVertexArrays(1, &app->vao);
+    glBindVertexArray(app->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
+    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
+    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
+    glBindVertexArray(0);
+
+    //Load the program
+    app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
+    Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
+    app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
+
+    //Initialize textures
+    app->diceTexIdx = LoadTexture2D(app, "dice.png");
+    app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
+    app->blackTexIdx = LoadTexture2D(app, "color_black.png");
+    app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
+    app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
     app->mode = Mode_TexturedQuad;
 }
