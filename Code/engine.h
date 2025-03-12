@@ -42,6 +42,16 @@ enum Mode
     Mode_Count
 };
 
+struct OpenGLInfo
+{
+    char* version;
+    char* renderer;
+    char* vendor;
+    char* versionGLSL;
+    int numExtensions;
+    char** extensions;
+};
+
 struct App
 {
     // Loop
@@ -54,6 +64,7 @@ struct App
     // Graphics
     char gpuName[64];
     char openGlVersion[64];
+    OpenGLInfo GLInfo;
 
     ivec2 displaySize;
 

@@ -178,8 +178,30 @@ u32 LoadTexture2D(App* app, const char* filepath)
     }
 }
 
+void getOpenGlInfo(App* app)
+{
+    app->GLInfo = {};
+    app->GLInfo.version = (char*)glGetString(GL_VERSION);
+    app->GLInfo.renderer = (char*)glGetString(GL_RENDERER);
+    app->GLInfo.vendor = (char*)glGetString(GL_VENDOR);
+    app->GLInfo.versionGLSL = (char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+    GLint num_extensions;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &num_extensions);
+
+    app->GLInfo.numExtensions = num_extensions;
+    app->GLInfo.extensions = new char* [num_extensions];
+
+    for (int i = 0; i < num_extensions; ++i)
+    {
+        app->GLInfo.extensions[i] = (char*)glGetStringi(GL_EXTENSIONS, GLuint(i));
+    }
+}
+
 void Init(App* app)
 {
+    getOpenGlInfo(app);
+
     // TODO: Initialize your resources here!
     // - vertex buffers
     // - element/index buffers
@@ -251,6 +273,21 @@ void Gui(App* app)
 {
     ImGui::Begin("Info");
     ImGui::Text("FPS: %f", 1.0f/app->deltaTime);
+    ImGui::Text("GL Version: %s", app->GLInfo.version);
+    ImGui::Text("Renderer Version: %s", app->GLInfo.renderer);
+    ImGui::Text("Vendor: %s", app->GLInfo.vendor);
+    ImGui::Text("GLSL Version: %s", app->GLInfo.versionGLSL);
+
+    std::string dropdownTitle = "Extensions [" + std::to_string(app->GLInfo.numExtensions) + "]";
+    if (ImGui::CollapsingHeader(dropdownTitle.c_str(), ImGuiTreeNodeFlags_None))
+    {
+        for (int i = 0; i < app->GLInfo.numExtensions; i++)
+        {
+            std::string name = "[" + std::to_string(i) + "] " + app->GLInfo.extensions[i];
+            ImGui::Text("%s", name.c_str());
+        }
+    }
+    
     ImGui::End();
 }
 
