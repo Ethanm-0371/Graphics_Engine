@@ -274,6 +274,27 @@ void Render(App* app)
                 //   (...and make its texture sample from unit 0)
                 // - bind the vao
                 // - glDrawElements() !!!
+                glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+                Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+                glUseProgram(programTexturedGeometry.handle);
+                glBindVertexArray(app->vao);
+
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                glUniform1i(app->programUniformTexture, 0);
+                glActiveTexture(GL_TEXTURE0);
+                GLuint textureHandle = app->textures[app->diceTexIdx].handle;
+                glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+
+                glBindVertexArray(0);
+                glUseProgram(0);
             }
             break;
 
