@@ -299,9 +299,20 @@ void Init(App* app)
     glBindVertexArray(0);
 
     //Load the program
-    app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
+    app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); //This is used to render a plane
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
+
+    //I have no idea of what this is, I have no idea of what it does, but it might be needed later
+    //app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
+    //Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //position
+
+    //I don't even know what this is, but it is related to loading attributes from the mesh.
+    //glGetProgramiv(programHandle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+    //glGetActiveAttrib(programHandle, i, ARRAY_COUNT(attributeName), &attributeNameLength, &attributeSize, &attributeType, attributeName);
+    //attributeLocation = glGetAttribLocation(programHandle, attributeName);
 
     //Initialize textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
