@@ -29,14 +29,6 @@ struct Texture
     std::string filepath;
 };
 
-struct Program
-{
-    GLuint             handle;
-    std::string        filepath;
-    std::string        programName;
-    u64                lastWriteTimestamp; // What is this for?
-};
-
 enum Mode
 {
     Mode_TexturedQuad,
@@ -112,6 +104,15 @@ struct Material
     u32 bumpTextureIdx;
 };
 
+struct Program
+{
+    GLuint             handle;
+    std::string        filepath;
+    std::string        programName;
+    u64                lastWriteTimestamp;
+    VertexBufferLayout vertexInputLayout; //This is guessed, could be wrong
+};
+
 //App
 struct OpenGLInfo
 {
@@ -156,6 +157,9 @@ struct App
     u32 normalTexIdx;
     u32 magentaTexIdx;
 
+    //model indices
+    u32 patrickModel;
+
     // Mode
     Mode mode;
 
@@ -166,6 +170,9 @@ struct App
 
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
+
+    // Location of the texture uniform in the mesh shader???
+    GLuint texturedMeshProgram_uTexture;
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
