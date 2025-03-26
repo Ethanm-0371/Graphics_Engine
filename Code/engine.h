@@ -178,6 +178,8 @@ struct App
     GLuint vao;
 };
 
+u32 LoadTexture2D(App* app, const char* filepath);
+
 void Init(App* app);
 
 void Gui(App* app);
