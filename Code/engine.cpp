@@ -481,6 +481,12 @@ void Update(App* app)
     //Shader Transform update
     Camera& cam = app->programs[app->texturedMeshProgramIdx].camera;
 
+    if (app->input.mouseButtons[0] == BUTTON_PRESSED)
+    {
+        cam.position.x -= app->input.mouseDelta.x / 50.0f;
+        cam.position.y += app->input.mouseDelta.y / 50.0f;
+    }
+
     mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
     mat4 view = glm::lookAt(cam.position, cam.lookAt, vec3(0, 1, 0));
     //mat4 view = glm::lookAt(vec3(0,0,-3.0f), vec3(0), vec3(0, 1, 0));
