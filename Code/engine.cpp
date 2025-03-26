@@ -7,6 +7,7 @@
 
 #include "engine.h"
 #include "assimp_loading.h"
+#include "buffer_management.h"
 #include <imgui.h>
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -302,6 +303,8 @@ void Init(App* app)
     }
 
     getOpenGlInfo(app);
+    //We want OpenGL to handle z-buffer shenanigans for us
+    glEnable(GL_DEPTH_TEST);
 
     // TODO: Initialize your resources here!
     // - vertex buffers
@@ -398,6 +401,16 @@ void Init(App* app)
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
     
+    //Create the buffer to pass the transforms to the shader
+    texturedMeshProgram.transformBuffer = CreateBuffer(64, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
+
+    texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 4.0f), 
+                                         vec3(0),
+                                         (float)app->displaySize.x / (float)app->displaySize.y,
+                                         0.1f,
+                                         1000.0f,
+                                         60.0f
+                                        };
 
     //I think this has to be done at some point to set a variable so that it doesn't explode.
     app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
@@ -437,6 +450,14 @@ void Gui(App* app)
     ImGui::End();
 }
 
+//tmp
+mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors)
+{
+    mat4 transform = glm::translate(pos);
+    transform = glm::scale(transform, scaleFactors);
+    return transform;
+}
+
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
@@ -456,6 +477,23 @@ void Update(App* app)
             program.lastWriteTimestamp = currentTimestamp;
         }
     }
+
+    //Shader Transform update
+    Camera& cam = app->programs[app->texturedMeshProgramIdx].camera;
+
+    mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
+    mat4 view = glm::lookAt(cam.position, cam.lookAt, vec3(0, 1, 0));
+    //mat4 view = glm::lookAt(vec3(0,0,-3.0f), vec3(0), vec3(0, 1, 0));
+
+    //mat4 world = TransformPositionScale(vec3(2.5f, 1.5f, -2.0f), vec3(0.45f));
+    mat4 world = TransformPositionScale(vec3(0), vec3(0.45f));//Patrick position?
+    mat4 worldViewProjection = projection * view * world;
+
+    Buffer& buffer = app->programs[app->texturedMeshProgramIdx].transformBuffer;
+    MapBuffer(buffer, GL_WRITE_ONLY);
+    PushAlignedData(buffer, &world, 64, 16);
+    PushAlignedData(buffer, &worldViewProjection, 64, 16);
+    UnmapBuffer(buffer);
 }
 
 void Render(App* app)
@@ -497,6 +535,11 @@ void Render(App* app)
 
                 Model& model = app->models[app->patrickModel];
                 Mesh& mesh = app->meshes[model.meshIdx];
+
+                //This binds the buffer with the transforms to the actual shader
+                u32 blockOffset = 0;
+                u32 blockSize = sizeof(mat4) * 2;
+                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->programs[app->texturedMeshProgramIdx].transformBuffer.handle, blockOffset, blockSize);
 
                 for (u32 i = 0; i < mesh.submeshes.size(); ++i)
                 {

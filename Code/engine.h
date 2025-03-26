@@ -13,6 +13,7 @@ typedef glm::vec4  vec4;
 typedef glm::ivec2 ivec2;
 typedef glm::ivec3 ivec3;
 typedef glm::ivec4 ivec4;
+typedef glm::mat4  mat4;
 
 //Shader
 struct Image
@@ -104,6 +105,28 @@ struct Material
     u32 bumpTextureIdx;
 };
 
+//Buffer
+struct Buffer
+{
+    GLuint handle;
+    GLenum type;
+    u32 size;
+    u32 head;
+    void* data; //mapped data
+};
+
+//Camera
+struct Camera
+{
+    vec3 position;
+    vec3 lookAt;
+
+    float aspectRatio;
+    float znear;
+    float zfar;
+    float fov;
+};
+
 struct Program
 {
     GLuint             handle;
@@ -111,6 +134,8 @@ struct Program
     std::string        programName;
     u64                lastWriteTimestamp;
     VertexShaderLayout vertexInputLayout;
+    Buffer             transformBuffer;
+    Camera             camera;
 };
 
 //App
