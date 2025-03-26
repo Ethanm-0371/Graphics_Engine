@@ -401,9 +401,6 @@ void Init(App* app)
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
     
-    //Create the buffer to pass the transforms to the shader
-    texturedMeshProgram.transformBuffer = CreateBuffer(64, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
-
     texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 4.0f), 
                                          vec3(0),
                                          (float)app->displaySize.x / (float)app->displaySize.y,
@@ -424,6 +421,14 @@ void Init(App* app)
 
     //Initialize models
     app->patrickModel = LoadModel(app, "Patrick/Patrick.obj");
+
+    //Place entities in scene
+    app->entityList.push_back({ vec3(-1.0, 0, 0), vec3(0.45) });
+    app->entityList.push_back({ vec3(1.0, 1.0, 0), vec3(0.8) });
+
+    //Create the buffer to pass the transforms to the shader
+    texturedMeshProgram.transformBuffer = CreateBuffer(app->entityList.size() * sizeof(mat4) * 2, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
+    
 
     app->mode = Mode_TexturedQuad;
 }
@@ -491,14 +496,20 @@ void Update(App* app)
     mat4 view = glm::lookAt(cam.position, cam.lookAt, vec3(0, 1, 0));
     //mat4 view = glm::lookAt(vec3(0,0,-3.0f), vec3(0), vec3(0, 1, 0));
 
-    //mat4 world = TransformPositionScale(vec3(2.5f, 1.5f, -2.0f), vec3(0.45f));
-    mat4 world = TransformPositionScale(vec3(0), vec3(0.45f));//Patrick position?
-    mat4 worldViewProjection = projection * view * world;
-
     Buffer& buffer = app->programs[app->texturedMeshProgramIdx].transformBuffer;
     MapBuffer(buffer, GL_WRITE_ONLY);
-    PushAlignedData(buffer, &world, 64, 16);
-    PushAlignedData(buffer, &worldViewProjection, 64, 16);
+
+    GLint index = 0;
+    for (u8 i = 0; i < app->entityList.size(); i++)
+    {
+        //mat4 world = TransformPositionScale(vec3(2.5f, 1.5f, -2.0f), vec3(0.45f));
+        mat4 world = TransformPositionScale(app->entityList.at(i).position, app->entityList.at(i).scale);//Patrick position?
+        mat4 worldViewProjection = projection * view * world;
+
+        PushAlignedData(buffer, &world, 64, 16);
+        PushAlignedData(buffer, &worldViewProjection, 64, 16);
+    }
+    
     UnmapBuffer(buffer);
 }
 
@@ -545,22 +556,27 @@ void Render(App* app)
                 //This binds the buffer with the transforms to the actual shader
                 u32 blockOffset = 0;
                 u32 blockSize = sizeof(mat4) * 2;
-                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->programs[app->texturedMeshProgramIdx].transformBuffer.handle, blockOffset, blockSize);
-
-                for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                for (u8 i = 0; i < app->entityList.size(); i++)
                 {
-                    GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
-                    glBindVertexArray(vao);
+                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->programs[app->texturedMeshProgramIdx].transformBuffer.handle, blockOffset, blockSize);
 
-                    u32 submeshMaterialIdx = model.materialIdx[i];
-                    Material& submeshMaterial = app->materials[submeshMaterialIdx];
+                    for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                    {
+                        GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+                        glBindVertexArray(vao);
 
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-                    glUniform1i(app->texturedMeshProgram_uTexture, 0);
+                        u32 submeshMaterialIdx = model.materialIdx[i];
+                        Material& submeshMaterial = app->materials[submeshMaterialIdx];
 
-                    Submesh& submesh = mesh.submeshes[i];
-                    glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+                        glActiveTexture(GL_TEXTURE0);
+                        glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+                        glUniform1i(app->texturedMeshProgram_uTexture, 0);
+
+                        Submesh& submesh = mesh.submeshes[i];
+                        glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+                    }
+
+                    blockOffset += blockSize;
                 }
 
                 glBindVertexArray(0);

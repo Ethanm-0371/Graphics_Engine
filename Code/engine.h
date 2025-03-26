@@ -127,6 +127,13 @@ struct Camera
     float fov;
 };
 
+//Entity
+struct Entity
+{
+    vec3 position;
+    vec3 scale;
+};
+
 struct Program
 {
     GLuint             handle;
@@ -184,6 +191,9 @@ struct App
 
     //model indices
     u32 patrickModel;
+
+    //Scene entities
+    std::vector<Entity> entityList;
 
     // Mode
     Mode mode;
