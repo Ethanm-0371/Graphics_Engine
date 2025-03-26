@@ -110,7 +110,7 @@ struct Program
     std::string        filepath;
     std::string        programName;
     u64                lastWriteTimestamp;
-    VertexBufferLayout vertexInputLayout; //This is guessed, could be wrong
+    VertexShaderLayout vertexInputLayout;
 };
 
 //App

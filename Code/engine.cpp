@@ -615,15 +615,13 @@ void Init(App* app)
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
 
-    //This loads the program from the shader file, but idk what the attributes pushbacks do
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+    //Manually passing the attributes
     //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
     //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
-    //I don't even know what this is, but it is related to loading attributes from the mesh.
-    //I still don't know what this is, but mesh loads fine. Maybe I'm missing something.
-    //This  is testing code, ask if it has been done correctly.
+    //All of this reads the attributes from the mesh, and stores them to send them later
     GLint attributeCount = 0;
     glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
 
@@ -634,19 +632,11 @@ void Init(App* app)
 
     for (u64 i = 0; i < attributeCount; ++i)
     {
-        //GLchar* attributeName = nullptr;
-        //GLchar* attributeName = new GLchar[maxAttributeNameLength + 1]; //+1 for null terminator
         std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
         GLsizei attributeNameLength;
         GLint attributeSize;
         GLenum attributeType;
 
-        /*glGetActiveAttrib(texturedMeshProgram.handle, i, 
-                          ARRAY_COUNT(attributeName), 
-                          &attributeNameLength, 
-                          &attributeSize, 
-                          &attributeType, 
-                          attributeName);*/
         glGetActiveAttrib(texturedMeshProgram.handle, i, 
                           maxAttributeNameLength, 
                           &attributeNameLength, 
@@ -654,17 +644,12 @@ void Init(App* app)
                           &attributeType, 
                           &attributeName[0]);
 
-        //attributeName[attributeNameLength] = '\0';
         attributeName.resize(attributeNameLength);
 
         u8 attributeLocation = glGetAttribLocation(texturedMeshProgram.handle, attributeName.c_str());
         u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
 
-        //What exactly am I supposed to do with this information?
-        //I can not do below because I do not have component count so idk
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
-
-        //delete[] attributeName;
     }
     
 
