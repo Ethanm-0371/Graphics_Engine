@@ -569,34 +569,35 @@ void Init(App* app)
         glm::vec2 uv;
     };
 
-    const VertexV3V2 vertices[] =
-    {
-        { glm::vec3(-0.5, -0.5, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
-        { glm::vec3(0.5, -0.5, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
-        { glm::vec3(0.5, 0.5, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
-        { glm::vec3(-0.5, 0.5, 0.0),    glm::vec2(0.0, 1.0) } //top-left
-    };
+    //This is for loading the dice image manually
+    //const VertexV3V2 vertices[] =
+    //{
+    //    { glm::vec3(-0.5, -0.5, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
+    //    { glm::vec3(0.5, -0.5, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
+    //    { glm::vec3(0.5, 0.5, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
+    //    { glm::vec3(-0.5, 0.5, 0.0),    glm::vec2(0.0, 1.0) } //top-left
+    //};
 
-    const u16 indices[] =
-    {
-        0,1,2,
-        0,2,3
-    };
+    //const u16 indices[] =
+    //{
+    //    0,1,2,
+    //    0,2,3
+    //};
 
-    //Prepare geometry
+    //Prepare geometry manually
     //VBO
-    glGenBuffers(1, &app->embeddedVertices);
-    glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    //glGenBuffers(1, &app->embeddedVertices);
+    //glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    //glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     //EBO
-    glGenBuffers(1, &app->embeddedElements);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    //glGenBuffers(1, &app->embeddedElements);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
+    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    //VAO
+    //VAO should I leave this?
     glGenVertexArrays(1, &app->vao);
     glBindVertexArray(app->vao);
     glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
@@ -609,24 +610,65 @@ void Init(App* app)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
     glBindVertexArray(0);
 
-    //Load the program
+    //Load the dice image program
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); //This is used to render a plane
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
 
-    //I have no idea of what this is, I have no idea of what it does, but it might be needed later
-    //app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
-    //Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //position
+    //This loads the program from the shader file, but idk what the attributes pushbacks do
+    app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
+    Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
     //I don't even know what this is, but it is related to loading attributes from the mesh.
-    //glGetProgramiv(programHandle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
-    //glGetActiveAttrib(programHandle, i, ARRAY_COUNT(attributeName), &attributeNameLength, &attributeSize, &attributeType, attributeName);
-    //attributeLocation = glGetAttribLocation(programHandle, attributeName);
+    //I still don't know what this is, but mesh loads fine. Maybe I'm missing something.
+    //This  is testing code, ask if it has been done correctly.
+    GLint attributeCount = 0;
+    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
 
-    //I think this has to be done at some point to set a variable so that it doesn't explode. It will explode now
-    //app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
+    //This gets the length of the longest attribute name, so that the buffer
+    //of said length can be allocated to then fill with the actual name
+    GLint maxAttributeNameLength = 0;
+    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeNameLength);
+
+    for (u64 i = 0; i < attributeCount; ++i)
+    {
+        //GLchar* attributeName = nullptr;
+        //GLchar* attributeName = new GLchar[maxAttributeNameLength + 1]; //+1 for null terminator
+        std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
+        GLsizei attributeNameLength;
+        GLint attributeSize;
+        GLenum attributeType;
+
+        /*glGetActiveAttrib(texturedMeshProgram.handle, i, 
+                          ARRAY_COUNT(attributeName), 
+                          &attributeNameLength, 
+                          &attributeSize, 
+                          &attributeType, 
+                          attributeName);*/
+        glGetActiveAttrib(texturedMeshProgram.handle, i, 
+                          maxAttributeNameLength, 
+                          &attributeNameLength, 
+                          &attributeSize, 
+                          &attributeType, 
+                          &attributeName[0]);
+
+        //attributeName[attributeNameLength] = '\0';
+        attributeName.resize(attributeNameLength);
+
+        u8 attributeLocation = glGetAttribLocation(texturedMeshProgram.handle, attributeName.c_str());
+
+        //What exactly am I supposed to do with this information?
+        //I can not do below because I do not have component count so idk
+        //texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, ??? });
+
+        //delete[] attributeName;
+    }
+    
+
+    //I think this has to be done at some point to set a variable so that it doesn't explode.
+    app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
 
     //Initialize textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -634,6 +676,9 @@ void Init(App* app)
     app->blackTexIdx = LoadTexture2D(app, "color_black.png");
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
+
+    //Initialize models
+    app->patrickModel = LoadModel(app, "Patrick/Patrick.obj");
 
     app->mode = Mode_TexturedQuad;
 }
@@ -745,4 +790,3 @@ void Render(App* app)
         default:;
     }
 }
-
