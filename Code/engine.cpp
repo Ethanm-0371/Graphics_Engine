@@ -597,18 +597,18 @@ void Init(App* app)
     //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-    //VAO should I leave this?
-    glGenVertexArrays(1, &app->vao);
-    glBindVertexArray(app->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
+    //VAO, we do this in render, in FindVAOs
+    //glGenVertexArrays(1, &app->vao);
+    //glBindVertexArray(app->vao);
+    //glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
-    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
-    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
+    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
+    //glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
+    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
+    //glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
-    glBindVertexArray(0);
+    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
+    //glBindVertexArray(0);
 
     //Load the dice image program
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); //This is used to render a plane
@@ -618,8 +618,8 @@ void Init(App* app)
     //This loads the program from the shader file, but idk what the attributes pushbacks do
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-    texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
-    texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
     //I don't even know what this is, but it is related to loading attributes from the mesh.
     //I still don't know what this is, but mesh loads fine. Maybe I'm missing something.
@@ -658,10 +658,11 @@ void Init(App* app)
         attributeName.resize(attributeNameLength);
 
         u8 attributeLocation = glGetAttribLocation(texturedMeshProgram.handle, attributeName.c_str());
+        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
 
         //What exactly am I supposed to do with this information?
         //I can not do below because I do not have component count so idk
-        //texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, ??? });
+        texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
 
         //delete[] attributeName;
     }
