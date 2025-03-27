@@ -463,6 +463,7 @@ mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors)
     return transform;
 }
 
+#include <iostream>
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
@@ -506,15 +507,32 @@ void Update(App* app)
         mat4 world = TransformPositionScale(app->entityList.at(i).position, app->entityList.at(i).scale);//Patrick position?
         mat4 worldViewProjection = projection * view * world;
 
+        std::cout << "Entity " << (int)i << " World Matrix Before Pushing:\n";
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++)
+                std::cout << world[r][c] << " ";
+            std::cout << "\n";
+        }
+
+        std::cout << "Entity " << (int)i << " World View Projection Before Pushing:\n";
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++)
+                std::cout << worldViewProjection[r][c] << " ";
+            std::cout << "\n";
+        }
+
         PushAlignedData(buffer, &world, 64, 16);
         PushAlignedData(buffer, &worldViewProjection, 64, 16);
     }
+    std::cout << "\n";
     
     UnmapBuffer(buffer);
 }
 
 void Render(App* app)
 {
+    std::cout << "------------------------------------" << std::endl;
+
     switch (app->mode)
     {
         case Mode_TexturedQuad:
@@ -533,32 +551,62 @@ void Render(App* app)
 
                 glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-                /*Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
-                glUseProgram(programTexturedGeometry.handle);
-                glBindVertexArray(app->vao);
-
-                glEnable(GL_BLEND);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-                glUniform1i(app->programUniformTexture, 0);
-                glActiveTexture(GL_TEXTURE0);
-                GLuint textureHandle = app->textures[app->diceTexIdx].handle;
-                glBindTexture(GL_TEXTURE_2D, textureHandle);
-
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);*/
 
                 Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
                 glUseProgram(texturedMeshProgram.handle);
+                std::cout << "Error loading program: " << glGetError() << std::endl;
 
                 Model& model = app->models[app->patrickModel];
                 Mesh& mesh = app->meshes[model.meshIdx];
 
-                //This binds the buffer with the transforms to the actual shader
                 u32 blockOffset = 0;
                 u32 blockSize = sizeof(mat4) * 2;
                 for (u8 i = 0; i < app->entityList.size(); i++)
                 {
-                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->programs[app->texturedMeshProgramIdx].transformBuffer.handle, blockOffset, blockSize);
+                    std::cout << "Values in buffer before bind, obj " << (int)i << ":" << std::endl;
+                    float* valuesInBuffer = (float*)texturedMeshProgram.transformBuffer.data;
+
+                    for (size_t j = 0; j < 2; j++)
+                    {
+                        for (int k = 0; k < 16; k++)
+                        {
+                            if (k % 4 == 0) { std::cout << std::endl; }
+                            std::cout << valuesInBuffer[i * 32 + j * 16 + k] << " ";
+                        }
+                        std::cout << std::endl;
+                    }
+
+                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, texturedMeshProgram.transformBuffer.handle, blockOffset, blockSize);
+
+
+                    GLfloat worldMatrix[16];
+                    glGetUniformfv(texturedMeshProgram.handle, glGetUniformLocation(texturedMeshProgram.handle, "uWorldMatrix"), worldMatrix);
+                    
+                    std::cout << "World Matrix in Shader, obj " << (int)i << ": " << std::endl;
+                    for (int mamaguevo = 0; mamaguevo < 16; mamaguevo++)
+                    {
+                        std::cout << worldMatrix[mamaguevo] << std::endl;
+                    }
+                    /*for (int r = 0; r < 4; r++) {
+                        for (int c = 0; c < 4; c++)
+                            std::cout << worldMatrix[r + c] << " ";
+                        std::cout << "\n";
+                    }*/
+                    GLfloat projectionMatrix[16];
+
+                    GLint tempLocation = glGetUniformLocation(texturedMeshProgram.handle, "uWorldViewProjectionMatrix");
+                    if (tempLocation == -1) std::cout << "AAAAAAAAA" << glGetError() << std::endl;
+                    glGetUniformfv(texturedMeshProgram.handle, tempLocation, projectionMatrix);
+
+                    std::cout << "Projection Matrix in Shader, obj " << (int)i << ": " << std::endl;
+                    for (int r = 0; r < 4; r++) {
+                        for (int c = 0; c < 4; c++)
+                            std::cout << projectionMatrix[r + c] << " ";
+                        std::cout << "\n";
+                    }
+
+
+
 
                     for (u32 i = 0; i < mesh.submeshes.size(); ++i)
                     {
@@ -577,6 +625,7 @@ void Render(App* app)
                     }
 
                     blockOffset += blockSize;
+                    std::cout << std::endl;
                 }
 
                 glBindVertexArray(0);
@@ -586,4 +635,6 @@ void Render(App* app)
 
         default:;
     }
+
+    std::cout << "------------------------------------" << std::endl;
 }
