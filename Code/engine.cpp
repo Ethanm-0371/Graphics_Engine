@@ -235,6 +235,14 @@ GLuint FindVAO(Mesh& mesh, u32 submeshIndex, const Program& program)
     return vaoHandle;
 }
 
+//tmp
+mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors)
+{
+    mat4 transform = glm::translate(pos);
+    transform = glm::scale(transform, scaleFactors);
+    return transform;
+}
+
 void getOpenGlInfo(App* app)
 {
     app->GLInfo = {};
@@ -401,7 +409,7 @@ void Init(App* app)
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
     
-    texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 4.0f), 
+    texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f), 
                                          vec3(0),
                                          (float)app->displaySize.x / (float)app->displaySize.y,
                                          0.1f,
@@ -423,11 +431,16 @@ void Init(App* app)
     app->patrickModel = LoadModel(app, "Patrick/Patrick.obj");
 
     //Place entities in scene
-    app->entityList.push_back({ vec3(-1.0, 0, 0), vec3(0.45) });
-    app->entityList.push_back({ vec3(1.0, 1.0, 0), vec3(0.8) });
+    app->entityList.push_back({ TransformPositionScale(vec3(0), vec3(0.5)) });
+    app->entityList.push_back({ TransformPositionScale(vec3(2.5, 0, 0), vec3(0.3)) });
+    app->entityList.push_back({ TransformPositionScale(vec3(0, 0, -2.5), vec3(0.2)) });
+
+    //Get info to create and use uniforms buffer
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &app->maxUniformBufferSize);
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &app->uniformBlockAlignment);
 
     //Create the buffer to pass the transforms to the shader
-    texturedMeshProgram.transformBuffer = CreateBuffer(app->entityList.size() * sizeof(mat4) * 2, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
+    app->transformsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
     
 
     app->mode = Mode_TexturedQuad;
@@ -453,14 +466,6 @@ void Gui(App* app)
     }
     
     ImGui::End();
-}
-
-//tmp
-mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors)
-{
-    mat4 transform = glm::translate(pos);
-    transform = glm::scale(transform, scaleFactors);
-    return transform;
 }
 
 void Update(App* app)
@@ -492,25 +497,36 @@ void Update(App* app)
         cam.position.y += app->input.mouseDelta.y / 50.0f;
     }
 
+    //Play with Patricks transforms
+    app->entityList.at(0).transformationMatrix = glm::rotate(app->entityList.at(0).transformationMatrix, glm::radians(1.0f), vec3(0, 1, 0));
+    app->entityList.at(1).transformationMatrix = TransformPositionScale(vec3(app->entityList.at(0).transformationMatrix[2][0] * 3.0f,
+                                                                             app->entityList.at(0).transformationMatrix[2][1] * 3.0f,
+                                                                             app->entityList.at(0).transformationMatrix[2][2] * 3.0f),
+                                                                             vec3(0.3f));
+    app->entityList.at(2).transformationMatrix = TransformPositionScale(vec3(0, 0, -2.5), vec3(app->entityList.at(0).transformationMatrix[2][0]));
+    //------------------------------
+
     mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
     mat4 view = glm::lookAt(cam.position, cam.lookAt, vec3(0, 1, 0));
-    //mat4 view = glm::lookAt(vec3(0,0,-3.0f), vec3(0), vec3(0, 1, 0));
 
-    Buffer& buffer = app->programs[app->texturedMeshProgramIdx].transformBuffer;
-    MapBuffer(buffer, GL_WRITE_ONLY);
+    MapBuffer(app->transformsBuffer, GL_WRITE_ONLY);
 
-    GLint index = 0;
-    for (u8 i = 0; i < app->entityList.size(); i++)
+    for (Entity& entity : app->entityList)
     {
-        //mat4 world = TransformPositionScale(vec3(2.5f, 1.5f, -2.0f), vec3(0.45f));
-        mat4 world = TransformPositionScale(app->entityList.at(i).position, app->entityList.at(i).scale);//Patrick position?
-        mat4 worldViewProjection = projection * view * world;
+        //mat4 world = TransformPositionScale(entity.position, entity.scale);
+        mat4 worldViewProjection = projection * view * entity.transformationMatrix;
 
-        PushAlignedData(buffer, &world, 64, 16);
-        PushAlignedData(buffer, &worldViewProjection, 64, 16);
+        AlignHead(app->transformsBuffer, app->uniformBlockAlignment);
+
+        entity.head = app->transformsBuffer.head;
+
+        PushMat4(app->transformsBuffer, entity.transformationMatrix);
+        PushMat4(app->transformsBuffer, worldViewProjection);
+
+        entity.size = app->transformsBuffer.head - entity.head;
     }
     
-    UnmapBuffer(buffer);
+    UnmapBuffer(app->transformsBuffer);
 }
 
 void Render(App* app)
@@ -540,11 +556,9 @@ void Render(App* app)
                 Model& model = app->models[app->patrickModel];
                 Mesh& mesh = app->meshes[model.meshIdx];
 
-                u32 blockOffset = 0;
-                u32 blockSize = sizeof(mat4) * 2;
-                for (u8 i = 0; i < app->entityList.size(); i++)
+                for (Entity& entity : app->entityList)
                 {
-                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, texturedMeshProgram.transformBuffer.handle, blockOffset, blockSize);
+                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->transformsBuffer.handle, entity.head, entity.size);
 
                     for (u32 i = 0; i < mesh.submeshes.size(); ++i)
                     {
@@ -561,8 +575,6 @@ void Render(App* app)
                         Submesh& submesh = mesh.submeshes[i];
                         glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
                     }
-
-                    blockOffset += blockSize;
                 }
 
                 glBindVertexArray(0);

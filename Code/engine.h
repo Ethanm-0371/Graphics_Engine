@@ -130,8 +130,12 @@ struct Camera
 //Entity
 struct Entity
 {
-    vec3 position;
-    vec3 scale;
+    //vec3 position;
+    //vec3 scale;
+    mat4 transformationMatrix;
+
+    u32 head;
+    u32 size;
 };
 
 struct Program
@@ -141,7 +145,6 @@ struct Program
     std::string        programName;
     u64                lastWriteTimestamp;
     VertexShaderLayout vertexInputLayout;
-    Buffer             transformBuffer;
     Camera             camera;
 };
 
@@ -211,6 +214,11 @@ struct App
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
+
+    //Uniforms buffer
+    Buffer transformsBuffer;
+    GLint maxUniformBufferSize;
+    GLint uniformBlockAlignment;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
