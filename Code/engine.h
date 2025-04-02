@@ -138,6 +138,22 @@ struct Entity
     u32 size;
 };
 
+//Lights
+enum LightType
+{
+    LightType_Directional,
+    LightType_Point,
+};
+
+struct Light
+{
+    unsigned int type;
+    unsigned int strength;
+    vec3 color;
+    vec3 direction;
+    vec3 position;
+};
+
 struct Program
 {
     GLuint             handle;
@@ -197,6 +213,9 @@ struct App
 
     //Scene entities
     std::vector<Entity> entityList;
+    
+    //Scene lights
+    std::vector<Light> lightList;
 
     // Mode
     Mode mode;
@@ -216,9 +235,11 @@ struct App
     GLuint vao;
 
     //Uniforms buffer
-    Buffer transformsBuffer;
+    Buffer uniformsBuffer;
     GLint maxUniformBufferSize;
     GLint uniformBlockAlignment;
+
+    GLint globalParamsSize;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);

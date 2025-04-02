@@ -435,12 +435,17 @@ void Init(App* app)
     app->entityList.push_back({ TransformPositionScale(vec3(2.5, 0, 0), vec3(0.3)) });
     app->entityList.push_back({ TransformPositionScale(vec3(0, 0, -2.5), vec3(0.2)) });
 
+    //Place lights in scene
+    //app->lightList.push_back({ LightType_Directional, 1, vec3(1,0,0), vec3(1), vec3(0) });
+    app->lightList.push_back({ LightType_Point, 1, vec3(0,1,0), vec3(0), vec3(0,-1,1.5) });
+    app->lightList.push_back({ LightType_Point, 1, vec3(0,0,1), vec3(0), vec3(0,2,1.5) });
+
     //Get info to create and use uniforms buffer
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &app->maxUniformBufferSize);
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &app->uniformBlockAlignment);
 
     //Create the buffer to pass the transforms to the shader
-    app->transformsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
+    app->uniformsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
     
 
     app->mode = Mode_TexturedQuad;
@@ -509,24 +514,46 @@ void Update(App* app)
     mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
     mat4 view = glm::lookAt(cam.position, cam.lookAt, vec3(0, 1, 0));
 
-    MapBuffer(app->transformsBuffer, GL_WRITE_ONLY);
+    MapBuffer(app->uniformsBuffer, GL_WRITE_ONLY);
 
+    //Push lights to the buffer
+    //app->globalParamsOffset = app->uniformsBuffer.head; //Might need to track where it starts in the future. Not now though.
+
+    PushVec3(app->uniformsBuffer, cam.position);
+
+    PushUInt(app->uniformsBuffer, app->lightList.size());
+
+    for (Light& light : app->lightList)
+    {
+        AlignHead(app->uniformsBuffer, sizeof(vec4));
+
+        PushUInt(app->uniformsBuffer, light.type);
+        PushUInt(app->uniformsBuffer, light.strength);
+        PushVec3(app->uniformsBuffer, light.color);
+        PushVec3(app->uniformsBuffer, light.direction);
+        PushVec3(app->uniformsBuffer, light.position);
+    }
+
+    //app->globalParamsSize = app->uniformsBuffer.head - app->globalParamsOffset; //Same as up
+    app->globalParamsSize = app->uniformsBuffer.head;
+
+    //Push entities to the buffer
     for (Entity& entity : app->entityList)
     {
         //mat4 world = TransformPositionScale(entity.position, entity.scale);
         mat4 worldViewProjection = projection * view * entity.transformationMatrix;
 
-        AlignHead(app->transformsBuffer, app->uniformBlockAlignment);
+        AlignHead(app->uniformsBuffer, app->uniformBlockAlignment);
 
-        entity.head = app->transformsBuffer.head;
+        entity.head = app->uniformsBuffer.head;
 
-        PushMat4(app->transformsBuffer, entity.transformationMatrix);
-        PushMat4(app->transformsBuffer, worldViewProjection);
+        PushMat4(app->uniformsBuffer, entity.transformationMatrix);
+        PushMat4(app->uniformsBuffer, worldViewProjection);
 
-        entity.size = app->transformsBuffer.head - entity.head;
+        entity.size = app->uniformsBuffer.head - entity.head;
     }
     
-    UnmapBuffer(app->transformsBuffer);
+    UnmapBuffer(app->uniformsBuffer);
 }
 
 void Render(App* app)
@@ -556,9 +583,13 @@ void Render(App* app)
                 Model& model = app->models[app->patrickModel];
                 Mesh& mesh = app->meshes[model.meshIdx];
 
+                //Bind buffer for global params
+                glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
                 for (Entity& entity : app->entityList)
                 {
-                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->transformsBuffer.handle, entity.head, entity.size);
+                    //Bind buffer per entity
+                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
 
                     for (u32 i = 0; i < mesh.submeshes.size(); ++i)
                     {
