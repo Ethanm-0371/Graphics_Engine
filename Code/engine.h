@@ -133,6 +133,7 @@ struct Entity
     //vec3 position;
     //vec3 scale;
     mat4 transformationMatrix;
+    u32 model;
 
     u32 head;
     u32 size;
@@ -210,6 +211,7 @@ struct App
 
     //model indices
     u32 patrickModel;
+    u32 planeModel;
 
     //Scene entities
     std::vector<Entity> entityList;

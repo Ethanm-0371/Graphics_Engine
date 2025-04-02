@@ -1,0 +1,61 @@
+newmtl Patrick:Brows_Color_png
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Color.png
+Ni 1.00
+Ks 0.00 0.00 0.00
+Ns 0.00
+newmtl Patrick:Eyes_Color_png
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Color.png
+Ni 1.00
+Ks 0.50 0.50 0.50
+Ns 96.08
+newmtl Patrick:Mouth
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Color.png
+Ni 1.00
+Ks 0.00 0.00 0.00
+Ns 0.00
+newmtl Patrick:Pants_Flowers_png
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Flowers.png
+Ni 1.00
+Ks 0.00 0.00 0.00
+Ns 0.00
+newmtl Patrick:Pupils_Color_png
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Color.png
+Ni 1.00
+Ks 0.50 0.50 0.50
+Ns 96.08
+newmtl Patrick:Skin_skin_png
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Skin_Patrick.png
+Ni 1.00
+Ks 0.00 0.00 0.00
+Ns 0.00
+newmtl lambert2SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd PlaneTexture.png
+Ni 1.00

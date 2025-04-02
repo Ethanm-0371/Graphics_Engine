@@ -410,7 +410,7 @@ void Init(App* app)
     }
     
     texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f), 
-                                         vec3(0),
+                                         vec3(0, 1.8, 0),
                                          (float)app->displaySize.x / (float)app->displaySize.y,
                                          0.1f,
                                          1000.0f,
@@ -429,16 +429,20 @@ void Init(App* app)
 
     //Initialize models
     app->patrickModel = LoadModel(app, "Patrick/Patrick.obj");
+    app->planeModel = LoadModel(app, "Plane/Plane.obj");
 
     //Place entities in scene
-    app->entityList.push_back({ TransformPositionScale(vec3(0), vec3(0.5)) });
-    app->entityList.push_back({ TransformPositionScale(vec3(2.5, 0, 0), vec3(0.3)) });
-    app->entityList.push_back({ TransformPositionScale(vec3(0, 0, -2.5), vec3(0.2)) });
+    app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, 0), vec3(0.5)), app->patrickModel });
+    app->entityList.push_back({ TransformPositionScale(vec3(2.5, 1.8, 0), vec3(0.3)), app->patrickModel });
+    app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, -2.5), vec3(0.2)), app->patrickModel });
+
+    app->entityList.push_back({ TransformPositionScale(vec3(0, 0, 0), vec3(5.0)), app->planeModel });
 
     //Place lights in scene
     //app->lightList.push_back({ LightType_Directional, 1, vec3(1,0,0), vec3(1), vec3(0) });
-    app->lightList.push_back({ LightType_Point, 1, vec3(0,1,0), vec3(0), vec3(0,-1,1.5) });
-    app->lightList.push_back({ LightType_Point, 1, vec3(0,0,1), vec3(0), vec3(0,2,1.5) });
+    app->lightList.push_back({ LightType_Point, 1, vec3(1,0,0), vec3(0), vec3(0,0.1,0) });
+    app->lightList.push_back({ LightType_Point, 1, vec3(0,1,0), vec3(0), vec3(1,3,1.5) });
+    app->lightList.push_back({ LightType_Point, 1, vec3(0,0,1), vec3(0), vec3(-1,3,1.5) });
 
     //Get info to create and use uniforms buffer
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &app->maxUniformBufferSize);
@@ -506,9 +510,15 @@ void Update(App* app)
     app->entityList.at(0).transformationMatrix = glm::rotate(app->entityList.at(0).transformationMatrix, glm::radians(1.0f), vec3(0, 1, 0));
     app->entityList.at(1).transformationMatrix = TransformPositionScale(vec3(app->entityList.at(0).transformationMatrix[2][0] * 3.0f,
                                                                              app->entityList.at(0).transformationMatrix[2][1] * 3.0f,
-                                                                             app->entityList.at(0).transformationMatrix[2][2] * 3.0f),
-                                                                             vec3(0.3f));
-    app->entityList.at(2).transformationMatrix = TransformPositionScale(vec3(0, 0, -2.5), vec3(app->entityList.at(0).transformationMatrix[2][0]));
+                                                                             app->entityList.at(0).transformationMatrix[2][2] * 3.0f) + 
+                                                                        vec3(0, 1.8, 0),
+                                                                        vec3(0.3f));
+    app->entityList.at(2).transformationMatrix = TransformPositionScale(vec3(0, 1.8, -2.5), vec3(app->entityList.at(0).transformationMatrix[2][0]));
+
+    app->lightList.at(0).position = vec3(app->entityList.at(0).transformationMatrix[2][0] * 5.0f,
+                                         app->entityList.at(0).transformationMatrix[2][1] * 5.0f,
+                                         app->entityList.at(0).transformationMatrix[2][2] * 5.0f) +
+                                    vec3(0, 0.1, 0);
     //------------------------------
 
     mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
@@ -580,14 +590,16 @@ void Render(App* app)
                 Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
                 glUseProgram(texturedMeshProgram.handle);
 
-                Model& model = app->models[app->patrickModel];
-                Mesh& mesh = app->meshes[model.meshIdx];
-
+                
                 //Bind buffer for global params
                 glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
 
                 for (Entity& entity : app->entityList)
                 {
+                    //Model& model = app->models[app->patrickModel];
+                    Model& model = app->models[entity.model];
+                    Mesh& mesh = app->meshes[model.meshIdx];
+
                     //Bind buffer per entity
                     glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
 
