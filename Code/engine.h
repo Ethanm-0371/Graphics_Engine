@@ -33,6 +33,8 @@ struct Texture
 enum Mode
 {
     Mode_TexturedQuad,
+    Mode_Meshes,
+    Mode_FrameBuffers,
     Mode_Count
 };
 
@@ -242,9 +244,15 @@ struct App
     GLint uniformBlockAlignment;
 
     GLint globalParamsSize;
+
+    GLuint colorAttachmentHandle;
+    GLuint depthAttachmentHandle;
+    GLuint frameBufferHandle;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath, GLuint texParams = GL_LINEAR);
+
+void GenFrameBuffers(App* app);
 
 void Init(App* app);
 
