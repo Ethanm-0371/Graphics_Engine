@@ -388,45 +388,45 @@ void Init(App* app)
     };
 
     //This is for loading the dice image manually
-    //const VertexV3V2 vertices[] =
-    //{
-    //    { glm::vec3(-0.5, -0.5, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
-    //    { glm::vec3(0.5, -0.5, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
-    //    { glm::vec3(0.5, 0.5, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
-    //    { glm::vec3(-0.5, 0.5, 0.0),    glm::vec2(0.0, 1.0) } //top-left
-    //};
+    const VertexV3V2 vertices[] =
+    {
+        { glm::vec3(-0.8, -0.8, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
+        { glm::vec3(0.8, -0.8, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
+        { glm::vec3(0.8, 0.8, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
+        { glm::vec3(-0.8, 0.8, 0.0),    glm::vec2(0.0, 1.0) } //top-left
+    };
 
-    //const u16 indices[] =
-    //{
-    //    0,1,2,
-    //    0,2,3
-    //};
+    const u16 indices[] =
+    {
+        0,1,2,
+        0,2,3
+    };
 
     //Prepare geometry manually
     //VBO
-    //glGenBuffers(1, &app->embeddedVertices);
-    //glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glGenBuffers(1, &app->embeddedVertices);
+    glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     //EBO
-    //glGenBuffers(1, &app->embeddedElements);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glGenBuffers(1, &app->embeddedElements);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     //VAO, we do this in render, in FindVAOs
-    //glGenVertexArrays(1, &app->vao);
-    //glBindVertexArray(app->vao);
-    //glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
+    glGenVertexArrays(1, &app->vao);
+    glBindVertexArray(app->vao);
+    glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
 
-    //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
-    //glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
-    //glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
-    //glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
+    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
+    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
 
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
-    //glBindVertexArray(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
+    glBindVertexArray(0);
 
     //Load the dice image program
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); //This is used to render a plane
@@ -645,7 +645,27 @@ void Render(App* app)
                 //   (...and make its texture sample from unit 0)
                 // - bind the vao
                 // - glDrawElements() !!!
-                
+                glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+                glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+                Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+                glUseProgram(programTexturedGeometry.handle);
+                glBindVertexArray(app->vao);
+
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                glUniform1i(app->programUniformTexture, 0);
+                glActiveTexture(GL_TEXTURE0);
+                GLuint textureHandle = app->textures[app->diceTexIdx].handle;
+                glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+
+                glBindVertexArray(0);
+                glUseProgram(0);
             }
             break;
         case Mode_Meshes:
@@ -712,8 +732,70 @@ void Render(App* app)
             // - Set states
             // - Draw calls
 
+            glEnable(GL_DEPTH_TEST);
+            Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+            glUseProgram(texturedMeshProgram.handle);
+
+
+            //Bind buffer for global params
+            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+            for (Entity& entity : app->entityList)
+            {
+                //Model& model = app->models[app->patrickModel];
+                Model& model = app->models[entity.model];
+                Mesh& mesh = app->meshes[model.meshIdx];
+
+                //Bind buffer per entity
+                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
+
+                for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                {
+                    GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+                    glBindVertexArray(vao);
+
+                    u32 submeshMaterialIdx = model.materialIdx[i];
+                    Material& submeshMaterial = app->materials[submeshMaterialIdx];
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+                    glUniform1i(app->texturedMeshProgram_uTexture, 0);
+
+                    Submesh& submesh = mesh.submeshes[i];
+                    glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+                }
+            }
+
+            glBindVertexArray(0);
+            glUseProgram(0);
+
             //glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDisable(GL_DEPTH_TEST);
+
+            //End of code loops----------------
+
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+            Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+            glUseProgram(programTexturedGeometry.handle);
+            glBindVertexArray(app->vao);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glUniform1i(app->programUniformTexture, 0);
+            glActiveTexture(GL_TEXTURE0);
+            GLuint textureHandle = app->colorAttachmentHandle;
+            glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+
+            glBindVertexArray(0);
+            glUseProgram(0);
         }
         break;
 
