@@ -244,7 +244,7 @@ struct App
     GLint globalParamsSize;
 };
 
-u32 LoadTexture2D(App* app, const char* filepath);
+u32 LoadTexture2D(App* app, const char* filepath, GLuint texParams = GL_LINEAR);
 
 void Init(App* app);
 

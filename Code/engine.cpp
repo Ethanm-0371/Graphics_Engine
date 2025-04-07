@@ -126,7 +126,7 @@ void FreeImage(Image image)
     stbi_image_free(image.pixels);
 }
 
-GLuint CreateTexture2DFromImage(Image image)
+GLuint CreateTexture2DFromImage(Image image, GLint texParam)
 {
     GLenum internalFormat = GL_RGB8;
     GLenum dataFormat     = GL_RGB;
@@ -142,9 +142,20 @@ GLuint CreateTexture2DFromImage(Image image)
     GLuint texHandle;
     glGenTextures(1, &texHandle);
     glBindTexture(GL_TEXTURE_2D, texHandle);
+
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.size.x, image.size.y, 0, dataFormat, dataType, image.pixels);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    
+    if (texParam != GL_LINEAR)
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texParam);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texParam);
+    }
+    else
+    {
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    }
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -154,7 +165,7 @@ GLuint CreateTexture2DFromImage(Image image)
     return texHandle;
 }
 
-u32 LoadTexture2D(App* app, const char* filepath)
+u32 LoadTexture2D(App* app, const char* filepath, GLuint texParams)
 {
     for (u32 texIdx = 0; texIdx < app->textures.size(); ++texIdx)
         if (app->textures[texIdx].filepath == filepath)
@@ -165,7 +176,7 @@ u32 LoadTexture2D(App* app, const char* filepath)
     if (image.pixels)
     {
         Texture tex = {};
-        tex.handle = CreateTexture2DFromImage(image);
+        tex.handle = CreateTexture2DFromImage(image, texParams);
         tex.filepath = filepath;
 
         u32 texIdx = app->textures.size();
@@ -429,7 +440,7 @@ void Init(App* app)
 
     //Initialize models
     app->patrickModel = LoadModel(app, "Patrick/Patrick.obj");
-    app->planeModel = LoadModel(app, "Plane/Plane.obj");
+    app->planeModel = LoadModel(app, "Plane/Plane.obj", GL_NEAREST);
 
     //Place entities in scene
     app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, 0), vec3(0.5)), app->patrickModel });

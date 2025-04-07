@@ -86,7 +86,7 @@ void ProcessAssimpMesh(const aiScene* scene, aiMesh* mesh, Mesh* myMesh, u32 bas
     myMesh->submeshes.push_back(submesh);
 }
 
-void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial, String directory)
+void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial, String directory, GLint texParam)
 {
     aiString name;
     aiColor3D diffuseColor;
@@ -110,35 +110,35 @@ void ProcessAssimpMaterial(App* app, aiMaterial* material, Material& myMaterial,
         material->GetTexture(aiTextureType_DIFFUSE, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.albedoTextureIdx = LoadTexture2D(app, filepath.str);
+        myMaterial.albedoTextureIdx = LoadTexture2D(app, filepath.str, texParam);
     }
     if (material->GetTextureCount(aiTextureType_EMISSIVE) > 0)
     {
         material->GetTexture(aiTextureType_EMISSIVE, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.emissiveTextureIdx = LoadTexture2D(app, filepath.str);
+        myMaterial.emissiveTextureIdx = LoadTexture2D(app, filepath.str, texParam);
     }
     if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
     {
         material->GetTexture(aiTextureType_SPECULAR, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.specularTextureIdx = LoadTexture2D(app, filepath.str);
+        myMaterial.specularTextureIdx = LoadTexture2D(app, filepath.str, texParam);
     }
     if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
     {
         material->GetTexture(aiTextureType_NORMALS, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
+        myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str, texParam);
     }
     if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
     {
         material->GetTexture(aiTextureType_HEIGHT, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str);
+        myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str, texParam);
     }
 
     //myMaterial.createNormalFromBump();
@@ -160,7 +160,7 @@ void ProcessAssimpNode(const aiScene* scene, aiNode* node, Mesh* myMesh, u32 bas
     }
 }
 
-u32 LoadModel(App* app, const char* filename)
+u32 LoadModel(App* app, const char* filename, GLint texParam)
 {
     const aiScene* scene = aiImportFile(filename,
         aiProcess_Triangulate |
@@ -195,7 +195,7 @@ u32 LoadModel(App* app, const char* filename)
     {
         app->materials.push_back(Material{});
         Material& material = app->materials.back();
-        ProcessAssimpMaterial(app, scene->mMaterials[i], material, directory);
+        ProcessAssimpMaterial(app, scene->mMaterials[i], material, directory, texParam);
     }
 
     ProcessAssimpNode(scene, scene->mRootNode, &mesh, baseMeshMaterialIndex, model.materialIdx);
