@@ -433,6 +433,8 @@ void Init(App* app)
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
 
+    #pragma region Direct Mode init
+
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
     //Manually passing the attributes
@@ -440,27 +442,27 @@ void Init(App* app)
     //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
     //All of this reads the attributes from the mesh, and stores them to send them later
-    GLint attributeCount = 0;
-    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+    GLint d_attributeCount = 0;
+    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTES, &d_attributeCount);
 
     //This gets the length of the longest attribute name, so that the buffer
     //of said length can be allocated to then fill with the actual name
-    GLint maxAttributeNameLength = 0;
-    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeNameLength);
+    GLint d_maxAttributeNameLength = 0;
+    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &d_maxAttributeNameLength);
 
-    for (u64 i = 0; i < attributeCount; ++i)
+    for (u64 i = 0; i < d_attributeCount; ++i)
     {
-        std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
+        std::string attributeName(d_maxAttributeNameLength, '\0'); //+null terminator
         GLsizei attributeNameLength;
         GLint attributeSize;
         GLenum attributeType;
 
-        glGetActiveAttrib(texturedMeshProgram.handle, i, 
-                          maxAttributeNameLength, 
-                          &attributeNameLength, 
-                          &attributeSize, 
-                          &attributeType, 
-                          &attributeName[0]);
+        glGetActiveAttrib(texturedMeshProgram.handle, i,
+            d_maxAttributeNameLength,
+            &attributeNameLength,
+            &attributeSize,
+            &attributeType,
+            &attributeName[0]);
 
         attributeName.resize(attributeNameLength);
 
@@ -469,17 +471,71 @@ void Init(App* app)
 
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
-    
-    texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f), 
+
+    texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f),
                                          vec3(0, 1.8, 0),
                                          (float)app->displaySize.x / (float)app->displaySize.y,
                                          0.1f,
                                          1000.0f,
                                          60.0f
-                                        };
+    };
 
     //I think this has to be done at some point to set a variable so that it doesn't explode.
     app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
+
+    #pragma endregion
+
+    #pragma region Render textures init
+
+    app->renderTexturesProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "RENDER_TEXTURES"); //This is used to render a mesh
+    Program& renderTexturesProgram = app->programs[app->texturedMeshProgramIdx];
+    //Manually passing the attributes
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
+
+    //All of this reads the attributes from the mesh, and stores them to send them later
+    GLint attributeCount = 0;
+    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+
+    //This gets the length of the longest attribute name, so that the buffer
+    //of said length can be allocated to then fill with the actual name
+    GLint maxAttributeNameLength = 0;
+    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeNameLength);
+
+    for (u64 i = 0; i < attributeCount; ++i)
+    {
+        std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
+        GLsizei attributeNameLength;
+        GLint attributeSize;
+        GLenum attributeType;
+
+        glGetActiveAttrib(renderTexturesProgram.handle, i,
+            maxAttributeNameLength,
+            &attributeNameLength,
+            &attributeSize,
+            &attributeType,
+            &attributeName[0]);
+
+        attributeName.resize(attributeNameLength);
+
+        u8 attributeLocation = glGetAttribLocation(renderTexturesProgram.handle, attributeName.c_str());
+        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
+
+        renderTexturesProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
+    }
+
+    renderTexturesProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f),
+                                         vec3(0, 1.8, 0),
+                                         (float)app->displaySize.x / (float)app->displaySize.y,
+                                         0.1f,
+                                         1000.0f,
+                                         60.0f
+    };
+
+    //I think this has to be done at some point to set a variable so that it doesn't explode.
+    app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
+
+    #pragma endregion
 
     //Initialize textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -516,7 +572,7 @@ void Init(App* app)
 
     //app->mode = Mode_TexturedQuad;
     //app->mode = Mode_Meshes;
-    app->mode = Mode_FrameBuffers;
+    app->mode = Mode_FrameBuffer;
 }
 
 void Gui(App* app)
@@ -535,6 +591,7 @@ void Gui(App* app)
     ImGui::Text("0: Textured quad");
     ImGui::Text("1: Direct mesh rendering");
     ImGui::Text("2: Framebuffers rendering");
+    ImGui::Text("3: Render textures");
 
     ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
 
@@ -565,7 +622,8 @@ void Update(App* app)
 
     if (app->input.keys[K_0] == BUTTON_PRESS) { app->mode = Mode_TexturedQuad; }
     if (app->input.keys[K_1] == BUTTON_PRESS) { app->mode = Mode_Meshes; }
-    if (app->input.keys[K_2] == BUTTON_PRESS) { app->mode = Mode_FrameBuffers; }
+    if (app->input.keys[K_2] == BUTTON_PRESS) { app->mode = Mode_FrameBuffer; }
+    if (app->input.keys[K_3] == BUTTON_PRESS) { app->mode = Mode_AllRenderTextures; }
 
     //Shader hot reload
     for (u64 i = 0; i < app->programs.size(); ++i)
@@ -739,7 +797,7 @@ void Render(App* app)
                 glUseProgram(0);
             }
             break;
-        case Mode_FrameBuffers:
+        case Mode_FrameBuffer:
         {
             //Render on this frame buffer render targets
             glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
@@ -823,7 +881,92 @@ void Render(App* app)
             glBindVertexArray(0);
             glUseProgram(0);
         }
-        break;
+            break;
+        case Mode_AllRenderTextures:
+        {
+            //Render on this frame buffer render targets
+            glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
+
+            //Select on which render targets to draw
+            GLuint drawBuffers[] = { app->colorAttachmentHandle };
+            glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
+
+            //Clear color and depth (only if required)
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            //Render code loops
+            // - Bind programs
+            // - Bind buffers
+            // - Set states
+            // - Draw calls
+
+            glEnable(GL_DEPTH_TEST);
+            Program& renderTexturesProgram = app->programs[app->renderTexturesProgramIdx];
+            glUseProgram(renderTexturesProgram.handle);
+
+
+            //Bind buffer for global params
+            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+            for (Entity& entity : app->entityList)
+            {
+                //Model& model = app->models[app->patrickModel];
+                Model& model = app->models[entity.model];
+                Mesh& mesh = app->meshes[model.meshIdx];
+
+                //Bind buffer per entity
+                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
+
+                for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                {
+                    GLuint vao = FindVAO(mesh, i, app->programs[app->texturedMeshProgramIdx]);
+                    glBindVertexArray(vao);
+
+                    u32 submeshMaterialIdx = model.materialIdx[i];
+                    Material& submeshMaterial = app->materials[submeshMaterialIdx];
+
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+                    glUniform1i(app->renderTexturesProgram_uTexture, 0);
+
+                    Submesh& submesh = mesh.submeshes[i];
+                    glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+                }
+            }
+
+            glBindVertexArray(0);
+            glUseProgram(0);
+
+            //glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glDisable(GL_DEPTH_TEST);
+
+            //End of code loops----------------
+
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+            Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+            glUseProgram(programTexturedGeometry.handle);
+            glBindVertexArray(app->vao);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glUniform1i(app->programUniformTexture, 0);
+            glActiveTexture(GL_TEXTURE0);
+            GLuint textureHandle = app->colorAttachmentHandle;
+            glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+
+            glBindVertexArray(0);
+            glUseProgram(0);
+        }
+            break;
 
         default:;
     }

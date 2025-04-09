@@ -34,7 +34,8 @@ enum Mode
 {
     Mode_TexturedQuad,
     Mode_Meshes,
-    Mode_FrameBuffers,
+    Mode_FrameBuffer,
+    Mode_AllRenderTextures,
     Mode_Count
 };
 
@@ -203,6 +204,7 @@ struct App
     // program indices
     u32 texturedGeometryProgramIdx;
     u32 texturedMeshProgramIdx;
+    u32 renderTexturesProgramIdx;
     
     // texture indices
     u32 diceTexIdx;
@@ -234,6 +236,9 @@ struct App
 
     // Location of the texture uniform in the mesh shader???
     GLuint texturedMeshProgram_uTexture;
+    
+    // Location of the texture uniform in the render texture shader???
+    GLuint renderTexturesProgram_uTexture;
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;

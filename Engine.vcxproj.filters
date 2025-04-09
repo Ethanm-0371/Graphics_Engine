@@ -109,5 +109,8 @@
     <None Include="WorkingDir\shaders.glsl">
       <Filter>Shaders</Filter>
     </None>
+    <None Include="WorkingDir\render_textures_shader.glsl">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>
