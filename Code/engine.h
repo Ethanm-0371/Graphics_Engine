@@ -251,6 +251,9 @@ struct App
     GLint globalParamsSize;
 
     GLuint colorAttachmentHandle;
+    GLuint specularAttachmentHandle;
+    GLuint normalsAttachmentHandle;
+    GLuint emissiveAttachmentHandle;
     GLuint depthAttachmentHandle;
     GLuint frameBufferHandle;
 };
