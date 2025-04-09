@@ -523,6 +523,24 @@ void Gui(App* app)
 {
     ImGui::Begin("Info");
     ImGui::Text("FPS: %f", 1.0f/app->deltaTime);
+    ImGui::Separator();
+
+    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
+
+    ImGui::Text("Rendering info");
+    ImGui::Separator();
+    ImGui::Text("Current render mode: %d", app->mode);
+    ImGui::Spacing();
+    ImGui::Text("Render modes:");
+    ImGui::Text("0: Textured quad");
+    ImGui::Text("1: Direct mesh rendering");
+    ImGui::Text("2: Framebuffers rendering");
+
+    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
+
+    ImGui::Text("OpenGL info");
+    ImGui::Separator();
+    ImGui::Text("ImGui version: %s", ImGui::GetVersion());
     ImGui::Text("GL Version: %s", app->GLInfo.version);
     ImGui::Text("Renderer Version: %s", app->GLInfo.renderer);
     ImGui::Text("Vendor: %s", app->GLInfo.vendor);
@@ -544,6 +562,10 @@ void Gui(App* app)
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
+
+    if (app->input.keys[K_0] == BUTTON_PRESS) { app->mode = Mode_TexturedQuad; }
+    if (app->input.keys[K_1] == BUTTON_PRESS) { app->mode = Mode_Meshes; }
+    if (app->input.keys[K_2] == BUTTON_PRESS) { app->mode = Mode_FrameBuffers; }
 
     //Shader hot reload
     for (u64 i = 0; i < app->programs.size(); ++i)
@@ -673,6 +695,8 @@ void Render(App* app)
                 glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+                glEnable(GL_DEPTH_TEST);
+
                 glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
 
@@ -708,6 +732,8 @@ void Render(App* app)
                         glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
                     }
                 }
+
+                glDisable(GL_DEPTH_TEST);
 
                 glBindVertexArray(0);
                 glUseProgram(0);
