@@ -121,8 +121,7 @@ struct Buffer
 //Camera
 struct Camera
 {
-    vec3 position;
-    vec3 lookAt;
+    mat4 transformation;
 
     float aspectRatio;
     float znear;
@@ -165,7 +164,6 @@ struct Program
     std::string        programName;
     u64                lastWriteTimestamp;
     VertexShaderLayout vertexInputLayout;
-    Camera             camera;
 };
 
 //App
@@ -225,6 +223,7 @@ struct App
 
     // Mode
     Mode mode;
+    Camera camera;
 
     // Embedded geometry (in-editor simple meshes such as
     // a screen filling quad, a cube, a sphere...)

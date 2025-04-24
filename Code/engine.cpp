@@ -508,14 +508,6 @@ void Init(App* app)
         texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
 
-    texturedMeshProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f),
-                                         vec3(0, 1.8, 0),
-                                         (float)app->displaySize.x / (float)app->displaySize.y,
-                                         0.1f,
-                                         1000.0f,
-                                         60.0f
-    };
-
     //I think this has to be done at some point to set a variable so that it doesn't explode.
     app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
 
@@ -560,13 +552,15 @@ void Init(App* app)
         renderTexturesProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
 
-    renderTexturesProgram.camera = Camera{ vec3(2.0f, 2.0f, 6.0f),
-                                         vec3(0, 1.8, 0),
-                                         (float)app->displaySize.x / (float)app->displaySize.y,
-                                         0.1f,
-                                         1000.0f,
-                                         60.0f
+    app->camera = Camera{ mat4(1.0),
+                          (float)app->displaySize.x / (float)app->displaySize.y,
+                          0.1f,
+                          1000.0f,
+                          60.0f
     };
+    app->camera.transformation = glm::translate(app->camera.transformation, vec3(1, 4, 5));
+    app->camera.transformation = glm::rotate(app->camera.transformation, glm::radians(12.5f), vec3(0, 1, 0) * (glm::mat3)app->camera.transformation);
+    app->camera.transformation = glm::rotate(app->camera.transformation, glm::radians(-30.0f), vec3(1, 0, 0));
 
     //I think this has to be done at some point to set a variable so that it doesn't explode.
     app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
@@ -628,6 +622,38 @@ void Gui(App* app)
     ImGui::Text("1: Direct mesh rendering");
     ImGui::Text("2: Framebuffers rendering");
     ImGui::Text("3: Render textures");
+    ImGui::Spacing();
+
+    if (ImGui::CollapsingHeader("Camera transformation matrix", ImGuiTreeNodeFlags_None))
+    {
+        Camera& cam = app->camera;
+
+        if (ImGui::BeginTable("", 4))
+        {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("%f", cam.transformation[0][0]);
+            ImGui::Text("%f", cam.transformation[1][0]);
+            ImGui::Text("%f", cam.transformation[2][0]);
+            ImGui::Text("%f", cam.transformation[3][0]);
+            ImGui::TableSetColumnIndex(1);
+            ImGui::Text("%f", cam.transformation[0][1]);
+            ImGui::Text("%f", cam.transformation[1][1]);
+            ImGui::Text("%f", cam.transformation[2][1]);
+            ImGui::Text("%f", cam.transformation[3][1]);
+            ImGui::TableSetColumnIndex(2);
+            ImGui::Text("%f", cam.transformation[0][2]);
+            ImGui::Text("%f", cam.transformation[1][2]);
+            ImGui::Text("%f", cam.transformation[2][2]);
+            ImGui::Text("%f", cam.transformation[3][2]);
+            ImGui::TableSetColumnIndex(3);
+            ImGui::Text("%f", cam.transformation[0][3]);
+            ImGui::Text("%f", cam.transformation[1][3]);
+            ImGui::Text("%f", cam.transformation[2][3]);
+            ImGui::Text("%f", cam.transformation[3][3]);
+        }
+        ImGui::EndTable();
+    }
 
     ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
 
@@ -648,7 +674,7 @@ void Gui(App* app)
             ImGui::Text("%s", name.c_str());
         }
     }
-    
+
     ImGui::End();
 }
 
@@ -678,12 +704,60 @@ void Update(App* app)
     }
 
     //Shader Transform update
-    Camera& cam = app->programs[app->texturedMeshProgramIdx].camera;
+    Camera& cam = app->camera;
 
-    if (app->input.mouseButtons[0] == BUTTON_PRESSED)
+    if (app->input.mouseButtons[1] == BUTTON_PRESSED)
     {
-        cam.position.x -= app->input.mouseDelta.x / 50.0f;
-        cam.position.y += app->input.mouseDelta.y / 50.0f;
+        glm::mat3 rotMat = glm::mat3(cam.transformation);
+        vec3 position = vec3(cam.transformation[3]);
+
+        vec3 right = rotMat[0];
+        vec3 up = rotMat[1];
+        vec3 forward = -rotMat[2]; //in OpenGL is back
+        
+        float movementSpeed = 0.1f;
+        if (app->input.keys[K_W] == BUTTON_PRESSED)
+        {
+            vec3 vecInRefFrame = forward * movementSpeed * rotMat;
+
+            cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
+        }
+        if (app->input.keys[K_A] == BUTTON_PRESSED)
+        {
+            vec3 vecInRefFrame = -right * movementSpeed * rotMat;
+
+            cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
+        }
+        if (app->input.keys[K_S] == BUTTON_PRESSED)
+        {
+            vec3 vecInRefFrame = -forward * movementSpeed * rotMat;
+
+            cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
+        }
+        if (app->input.keys[K_D] == BUTTON_PRESSED)
+        {
+            vec3 vecInRefFrame = right * movementSpeed * rotMat;
+
+            cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
+        }
+        if (app->input.keys[K_SPACE] == BUTTON_PRESSED)
+        {
+            vec3 vecInRefFrame = vec3(0,1,0) * movementSpeed * rotMat;
+
+            cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
+        }
+        if (app->input.keys[K_C] == BUTTON_PRESSED)
+        {
+            vec3 vecInRefFrame = -vec3(0,1,0) * movementSpeed * rotMat;
+
+            cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
+        }
+
+        float xIncrease = app->input.mouseDelta.x;
+        cam.transformation = glm::rotate(cam.transformation, glm::radians(-xIncrease / 10.0f), vec3(0, 1, 0) * (glm::mat3)cam.transformation);
+
+        float yIncrease = app->input.mouseDelta.y;
+        cam.transformation = glm::rotate(cam.transformation, glm::radians(-yIncrease / 10.0f), vec3(1, 0, 0));
     }
 
     //Play with Patricks transforms
@@ -702,14 +776,15 @@ void Update(App* app)
     //------------------------------
 
     mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
-    mat4 view = glm::lookAt(cam.position, cam.lookAt, vec3(0, 1, 0));
+
+    mat4 view = glm::inverse(cam.transformation);
 
     MapBuffer(app->uniformsBuffer, GL_WRITE_ONLY);
 
     //Push lights to the buffer
     //app->globalParamsOffset = app->uniformsBuffer.head; //Might need to track where it starts in the future. Not now though.
 
-    PushVec3(app->uniformsBuffer, cam.position);
+    PushVec3(app->uniformsBuffer, (vec3)cam.transformation[3]);
 
     PushUInt(app->uniformsBuffer, app->lightList.size());
 
