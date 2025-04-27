@@ -316,19 +316,8 @@ void OnGlError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei l
 void GenFrameBuffers(App* app)
 {
     // Color buffer
-    glGenTextures(1, &app->colorAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->colorAttachmentHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Specular buffer
-    glGenTextures(1, &app->specularAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->specularAttachmentHandle);
+    glGenTextures(1, &app->albedoAttachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, app->albedoAttachmentHandle);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -348,9 +337,20 @@ void GenFrameBuffers(App* app)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    // Emissive buffer
-    glGenTextures(1, &app->emissiveAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->emissiveAttachmentHandle);
+    // Position buffer
+    glGenTextures(1, &app->positionAttachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, app->positionAttachmentHandle);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // Deferred buffer
+    glGenTextures(1, &app->deferredAttachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, app->deferredAttachmentHandle);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -368,22 +368,59 @@ void GenFrameBuffers(App* app)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
 
 
-    glGenFramebuffers(1, &app->frameBufferHandle);
-    glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
+    glGenFramebuffers(1, &app->deferredFrameBufferHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->colorAttachmentHandle, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app->specularAttachmentHandle, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->normalsAttachmentHandle, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->emissiveAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->albedoAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app->normalsAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->positionAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
     GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE)
     {
         switch (framebufferStatus)
+        {
+        case GL_FRAMEBUFFER_UNDEFINED:ELOG("GL_FRAMEBUFFER_UNDEFINED"); break;
+        case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:ELOG("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT"); break;
+        case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:ELOG("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT"); break;
+        case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:ELOG("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER"); break;
+        case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:ELOG("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER"); break;
+        case GL_FRAMEBUFFER_UNSUPPORTED:ELOG("GL_FRAMEBUFFER_UNSUPPORTED"); break;
+        case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:ELOG("GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE"); break;
+        case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:ELOG("GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS"); break;
+        default:ELOG("Unknown framebuffer status error");
+        }
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //---------------------------------------------------------------------------
+
+    // Direct render texture buffer
+    glGenTextures(1, &app->frameBufferAttachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, app->frameBufferAttachmentHandle);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &app->directFrameBufferHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->frameBufferAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
+
+    GLenum directFramebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (directFramebufferStatus != GL_FRAMEBUFFER_COMPLETE)
+    {
+        switch (directFramebufferStatus)
         {
         case GL_FRAMEBUFFER_UNDEFINED:ELOG("GL_FRAMEBUFFER_UNDEFINED"); break;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:ELOG("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT"); break;
@@ -522,23 +559,23 @@ void Init(App* app)
     //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
     //All of this reads the attributes from the mesh, and stores them to send them later
-    GLint attributeCount = 0;
-    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+    GLint rt_attributeCount = 0;
+    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTES, &rt_attributeCount);
 
     //This gets the length of the longest attribute name, so that the buffer
     //of said length can be allocated to then fill with the actual name
-    GLint maxAttributeNameLength = 0;
-    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeNameLength);
+    GLint rt_maxAttributeNameLength = 0;
+    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &rt_maxAttributeNameLength);
 
-    for (u64 i = 0; i < attributeCount; ++i)
+    for (u64 i = 0; i < rt_attributeCount; ++i)
     {
-        std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
+        std::string attributeName(rt_maxAttributeNameLength, '\0'); //+null terminator
         GLsizei attributeNameLength;
         GLint attributeSize;
         GLenum attributeType;
 
         glGetActiveAttrib(renderTexturesProgram.handle, i,
-            maxAttributeNameLength,
+            rt_maxAttributeNameLength,
             &attributeNameLength,
             &attributeSize,
             &attributeType,
@@ -552,6 +589,93 @@ void Init(App* app)
         renderTexturesProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
     }
 
+    //I think this has to be done at some point to set a variable so that it doesn't explode.
+    app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
+
+    #pragma endregion
+
+    #pragma region Deferred Lighting init
+
+    app->deferredLightingProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "DEFERRED_LIGHTING_PASS"); //This is used for the deferred lighting pass
+    Program& deferredLightingProgram = app->programs[app->deferredLightingProgramIdx];
+    //Manually passing the attributes
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
+
+    /*
+
+    //All of this reads the attributes from the mesh, and stores them to send them later
+    GLint attributeCount = 0;
+    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+
+    //This gets the length of the longest attribute name, so that the buffer
+    //of said length can be allocated to then fill with the actual name
+    GLint maxAttributeNameLength = 0;
+    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeNameLength);
+
+    for (u64 i = 0; i < attributeCount; ++i)
+    {
+        std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
+        GLsizei attributeNameLength;
+        GLint attributeSize;
+        GLenum attributeType;
+
+        glGetActiveAttrib(deferredLightingProgram.handle, i,
+            maxAttributeNameLength,
+            &attributeNameLength,
+            &attributeSize,
+            &attributeType,
+            &attributeName[0]);
+
+        attributeName.resize(attributeNameLength);
+
+        //This maybe has to be changed to fit the needs of the shader
+        u8 attributeLocation = glGetAttribLocation(deferredLightingProgram.handle, attributeName.c_str());
+        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
+
+        deferredLightingProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
+    }
+
+    */
+
+    //I think this has to be done at some point to set a variable so that it doesn't explode.
+    //No, it is not that. I think that this reads the position of the texture uniform to store its 
+    //index so that it can be used later to pass the desired texture to the shader in said position.
+    
+    app->deferredLightingPass_posTexture = glGetUniformLocation(deferredLightingProgram.handle, "positionTexture");
+    app->deferredLightingPass_normalTexture = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
+    app->deferredLightingPass_albedoTexture = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
+    //GLint location0 = glGetUniformLocation(deferredLightingProgram.handle, "positionTexture");
+    //GLint location1 = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
+    //GLint location2 = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
+
+    //TESTING
+    GLint test_uniformCount = 0;
+    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_UNIFORMS, &test_uniformCount);
+
+    GLint test_maxUniformNameLength = 0;
+    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &test_maxUniformNameLength);
+
+    for (u64 i = 0; i < test_uniformCount; ++i)
+    {
+        std::string uniformName(test_maxUniformNameLength, '\0'); //+null terminator
+        GLsizei uniformNameLength;
+        GLint uniformSize;
+        GLenum uniformType;
+
+        glGetActiveUniform(deferredLightingProgram.handle, i,
+            test_maxUniformNameLength,
+            &uniformNameLength,
+            &uniformSize,
+            &uniformType,
+            &uniformName[0]);
+
+        std::cout << uniformName.c_str() << std::endl;
+    }
+    //TESTING
+
+    #pragma endregion
+
     app->camera = Camera{ mat4(1.0),
                           (float)app->displaySize.x / (float)app->displaySize.y,
                           0.1f,
@@ -561,11 +685,6 @@ void Init(App* app)
     app->camera.transformation = glm::translate(app->camera.transformation, vec3(1, 4, 5));
     app->camera.transformation = glm::rotate(app->camera.transformation, glm::radians(12.5f), vec3(0, 1, 0) * (glm::mat3)app->camera.transformation);
     app->camera.transformation = glm::rotate(app->camera.transformation, glm::radians(-30.0f), vec3(1, 0, 0));
-
-    //I think this has to be done at some point to set a variable so that it doesn't explode.
-    app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
-
-    #pragma endregion
 
     //Initialize textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -602,7 +721,8 @@ void Init(App* app)
 
     //app->mode = Mode_TexturedQuad;
     //app->mode = Mode_Meshes;
-    app->mode = Mode_FrameBuffer;
+    app->mode = Mode_DeferredRenderTextures;
+    app->renderTexMode = RendTexMode_Deferred;
 }
 
 void Gui(App* app)
@@ -685,7 +805,16 @@ void Update(App* app)
     if (app->input.keys[K_0] == BUTTON_PRESS) { app->mode = Mode_TexturedQuad; }
     if (app->input.keys[K_1] == BUTTON_PRESS) { app->mode = Mode_Meshes; }
     if (app->input.keys[K_2] == BUTTON_PRESS) { app->mode = Mode_FrameBuffer; }
-    if (app->input.keys[K_3] == BUTTON_PRESS) { app->mode = Mode_AllRenderTextures; }
+    if (app->input.keys[K_3] == BUTTON_PRESS) { app->mode = Mode_DeferredRenderTextures; }
+
+    if (app->mode == Mode_DeferredRenderTextures)
+    {
+        if (app->input.keys[K_5] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Albedo; }
+        if (app->input.keys[K_6] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Normals; }
+        if (app->input.keys[K_7] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Position; }
+        if (app->input.keys[K_8] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Depth; }
+        if (app->input.keys[K_9] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Deferred; }
+    }
 
     //Shader hot reload
     for (u64 i = 0; i < app->programs.size(); ++i)
@@ -911,10 +1040,10 @@ void Render(App* app)
         case Mode_FrameBuffer:
         {
             //Render on this frame buffer render targets
-            glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
+            glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
 
             //Select on which render targets to draw
-            GLuint drawBuffers[] = { app->colorAttachmentHandle };
+            GLuint drawBuffers[] = { app->frameBufferAttachmentHandle };
             glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
 
             //Clear color and depth (only if required)
@@ -984,7 +1113,7 @@ void Render(App* app)
 
             glUniform1i(app->programUniformTexture, 0);
             glActiveTexture(GL_TEXTURE0);
-            GLuint textureHandle = app->colorAttachmentHandle;
+            GLuint textureHandle = app->frameBufferAttachmentHandle;
             glBindTexture(GL_TEXTURE_2D, textureHandle);
 
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
@@ -992,17 +1121,17 @@ void Render(App* app)
             glBindVertexArray(0);
             glUseProgram(0);
         }
-            break;
-        case Mode_AllRenderTextures:
+        break;
+        case Mode_DeferredRenderTextures:
         {
             //Render on this frame buffer render targets
-            glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
+            glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
 
             //Select on which render targets to draw
-            GLuint drawBuffers[] = { GL_COLOR_ATTACHMENT0,
-                                     GL_COLOR_ATTACHMENT1,
-                                     GL_COLOR_ATTACHMENT2,
-                                     GL_COLOR_ATTACHMENT3 };
+            GLuint drawBuffers[] = { GL_COLOR_ATTACHMENT0,      //Albedo
+                                     GL_COLOR_ATTACHMENT1,      //Normals
+                                     GL_COLOR_ATTACHMENT2 };  //Position
+                                     //GL_COLOR_ATTACHMENT3 };    //Deferred
             glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
 
             //Clear color and depth (only if required)
@@ -1052,11 +1181,45 @@ void Render(App* app)
             glBindVertexArray(0);
             glUseProgram(0);
 
-            //glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glDisable(GL_DEPTH_TEST);
-
             //End of code loops----------------
+            
+            //Insert shading pass here--------------------------------------
+
+            glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
+
+            //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+            Program& shadingPassProgram = app->programs[app->deferredLightingProgramIdx];
+            glUseProgram(shadingPassProgram.handle);
+            glBindVertexArray(app->vao);
+
+            //Bind buffer for global params
+            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+            glUniform1i(app->deferredLightingPass_posTexture, 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, app->positionAttachmentHandle);
+
+            glUniform1i(app->deferredLightingPass_normalTexture, 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, app->normalsAttachmentHandle);
+
+            glUniform1i(app->deferredLightingPass_albedoTexture, 2);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, app->albedoAttachmentHandle);
+
+            
+            glDrawBuffer(GL_COLOR_ATTACHMENT3); //Deferred
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+            glBindVertexArray(0);
+            glUseProgram(0);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            //Shading pass end----------------------------------------------
 
             glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1072,7 +1235,18 @@ void Render(App* app)
 
             glUniform1i(app->programUniformTexture, 0);
             glActiveTexture(GL_TEXTURE0);
-            GLuint textureHandle = app->colorAttachmentHandle;
+
+            GLuint textureHandle = 0;
+            switch (app->renderTexMode)
+            {
+                case RendTexMode_Albedo:   textureHandle = app->albedoAttachmentHandle; break;
+                case RendTexMode_Normals:  textureHandle = app->normalsAttachmentHandle; break;
+                case RendTexMode_Position: textureHandle = app->positionAttachmentHandle; break;
+                case RendTexMode_Depth:    textureHandle = app->depthAttachmentHandle; break;
+                case RendTexMode_Deferred: textureHandle = app->deferredAttachmentHandle; break;
+                default: break;
+            }
+
             glBindTexture(GL_TEXTURE_2D, textureHandle);
 
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);

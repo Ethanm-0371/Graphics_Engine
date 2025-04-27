@@ -35,8 +35,17 @@ enum Mode
     Mode_TexturedQuad,
     Mode_Meshes,
     Mode_FrameBuffer,
-    Mode_AllRenderTextures,
+    Mode_DeferredRenderTextures,
     Mode_Count
+};
+enum RenderTextureMode
+{
+    RendTexMode_Albedo,
+    RendTexMode_Normals,
+    RendTexMode_Position,
+    RendTexMode_Depth,
+    RendTexMode_Deferred,
+    RendTexMode_Count
 };
 
 //VBO, EBO, shader, VAO stuff
@@ -203,6 +212,7 @@ struct App
     u32 texturedGeometryProgramIdx;
     u32 texturedMeshProgramIdx;
     u32 renderTexturesProgramIdx;
+    u32 deferredLightingProgramIdx;
     
     // texture indices
     u32 diceTexIdx;
@@ -223,6 +233,7 @@ struct App
 
     // Mode
     Mode mode;
+    RenderTextureMode renderTexMode;
     Camera camera;
 
     // Embedded geometry (in-editor simple meshes such as
@@ -239,6 +250,11 @@ struct App
     // Location of the texture uniform in the render texture shader???
     GLuint renderTexturesProgram_uTexture;
 
+    // Location of the texture uniforms in the lighting pass shader???
+    GLuint deferredLightingPass_posTexture;
+    GLuint deferredLightingPass_normalTexture;
+    GLuint deferredLightingPass_albedoTexture;
+
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
 
@@ -249,12 +265,16 @@ struct App
 
     GLint globalParamsSize;
 
-    GLuint colorAttachmentHandle;
-    GLuint specularAttachmentHandle;
+    GLuint albedoAttachmentHandle;
     GLuint normalsAttachmentHandle;
-    GLuint emissiveAttachmentHandle;
+    GLuint positionAttachmentHandle;
     GLuint depthAttachmentHandle;
-    GLuint frameBufferHandle;
+    GLuint deferredAttachmentHandle;
+
+    GLuint frameBufferAttachmentHandle;
+
+    GLuint directFrameBufferHandle;
+    GLuint deferredFrameBufferHandle;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath, GLuint texParams = GL_LINEAR);
