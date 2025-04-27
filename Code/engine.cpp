@@ -548,6 +548,51 @@ void Init(App* app)
 
     #pragma endregion
 
+    #pragma region Cube Shape init
+
+    //This is for loading the dice image manually
+    const VertexV3V2 cube_vertices[] =
+    {
+        { glm::vec3(-1.0, -1.0, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
+        { glm::vec3(1.0, -1.0, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
+        { glm::vec3(1.0, 1.0, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
+        { glm::vec3(-1.0, 1.0, 0.0),    glm::vec2(0.0, 1.0) } //top-left
+    };
+
+    const u16 cube_indices[] =
+    {
+        0,1,2,
+        0,2,3
+    };
+
+    //Prepare geometry manually
+    //VBO
+    glGenBuffers(1, &app->cube_embeddedVertices);
+    glBindBuffer(GL_ARRAY_BUFFER, app->cube_embeddedVertices);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    //EBO
+    glGenBuffers(1, &app->cube_embeddedElements);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->cube_embeddedElements);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    //VAO, we do this in render, in FindVAOs
+    glGenVertexArrays(1, &app->cube_vao);
+    glBindVertexArray(app->cube_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, app->cube_embeddedVertices);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
+    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
+    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->targetQuad_embeddedElements);
+    glBindVertexArray(0);
+
+    #pragma endregion
+
     #pragma region Dice Program init
 
     //Load the dice image program
@@ -656,6 +701,47 @@ void Init(App* app)
     app->deferredLightingPass_posTexture = glGetUniformLocation(deferredLightingProgram.handle, "positionTexture");
     app->deferredLightingPass_normalTexture = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
     app->deferredLightingPass_albedoTexture = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
+
+    #pragma endregion
+
+    #pragma region Lights Visualization Init
+
+    app->lightVisualizationProgramIdx = LoadProgram(app, "light_visualization_shader.glsl", "LIGHT_VISUALIZATION"); //This is used to render a mesh
+    Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
+    //Manually passing the attributes
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
+    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
+
+    //All of this reads the attributes from the mesh, and stores them to send them later
+    GLint lv_attributeCount = 0;
+    glGetProgramiv(lightVisProgram.handle, GL_ACTIVE_ATTRIBUTES, &lv_attributeCount);
+
+    //This gets the length of the longest attribute name, so that the buffer
+    //of said length can be allocated to then fill with the actual name
+    GLint lv_maxAttributeNameLength = 0;
+    glGetProgramiv(lightVisProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &lv_maxAttributeNameLength);
+
+    for (u64 i = 0; i < lv_attributeCount; ++i)
+    {
+        std::string attributeName(lv_maxAttributeNameLength, '\0'); //+null terminator
+        GLsizei attributeNameLength;
+        GLint attributeSize;
+        GLenum attributeType;
+
+        glGetActiveAttrib(lightVisProgram.handle, i,
+            lv_maxAttributeNameLength,
+            &attributeNameLength,
+            &attributeSize,
+            &attributeType,
+            &attributeName[0]);
+
+        attributeName.resize(attributeNameLength);
+
+        u8 attributeLocation = glGetAttribLocation(lightVisProgram.handle, attributeName.c_str());
+        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
+
+        lightVisProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
+    }
 
     #pragma endregion
 
@@ -1260,6 +1346,58 @@ void Render(App* app)
 
             glBindVertexArray(0);
             glUseProgram(0);
+
+            //Shading visualization start--------------------------------------------------------------
+
+            //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glEnable(GL_DEPTH_TEST);
+
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+            Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
+            glUseProgram(lightVisProgram.handle);
+
+
+            //Bind buffer for global params
+            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+            for (Entity& entity : app->entityList)
+            {
+                //Model& model = app->models[app->patrickModel];
+                //Model& model = app->models[entity.model];
+                //Mesh& mesh = app->meshes[model.meshIdx];
+
+                //Bind buffer per entity
+                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
+
+                //for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                for (Light light : app->lightList)
+                {
+                    //GLuint vao = FindVAO(mesh, i, lightVisProgram);
+                    //glBindVertexArray(vao);
+                    glBindVertexArray(app->cube_vao);
+
+                    //I assume this is to paint the model texture
+                    //u32 submeshMaterialIdx = model.materialIdx[i];
+                    //Material& submeshMaterial = app->materials[submeshMaterialIdx];
+                    //glActiveTexture(GL_TEXTURE0);
+                    //glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+                    //glUniform1i(app->texturedMeshProgram_uTexture, 0);
+
+                    //Submesh& submesh = mesh.submeshes[i];
+                    //glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+                }
+            }
+
+            glDisable(GL_DEPTH_TEST);
+
+            glBindVertexArray(0);
+            glUseProgram(0);
+
+            //Shading visualization end----------------------------------------------------------------
         }
             break;
 

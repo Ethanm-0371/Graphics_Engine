@@ -213,6 +213,7 @@ struct App
     u32 texturedMeshProgramIdx;
     u32 renderTexturesProgramIdx;
     u32 deferredLightingProgramIdx;
+    u32 lightVisualizationProgramIdx;
     
     // texture indices
     u32 diceTexIdx;
@@ -244,6 +245,9 @@ struct App
     GLuint screenfillingQuad_embeddedVertices;
     GLuint screenfillingQuad_embeddedElements;
 
+    GLuint cube_embeddedVertices;
+    GLuint cube_embeddedElements;
+
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
 
@@ -261,6 +265,8 @@ struct App
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint screenFilling_vao;
     GLuint target_vao;
+
+    GLuint cube_vao;
 
     //Uniforms buffer
     Buffer uniformsBuffer;
