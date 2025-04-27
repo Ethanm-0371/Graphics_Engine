@@ -714,16 +714,61 @@ void Gui(App* app)
 
     ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
 
-    ImGui::Text("Rendering info");
+    ImGui::Text("Controls");
     ImGui::Separator();
-    ImGui::Text("Current render mode: %d", app->mode);
     ImGui::Spacing();
-    ImGui::Text("Render modes:");
-    ImGui::Text("0: Textured quad");
-    ImGui::Text("1: Direct mesh rendering");
-    ImGui::Text("2: Framebuffers rendering");
-    ImGui::Text("3: Render textures");
+
+    ImGui::Text("Click on the main window to select it as the active window.");
     ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Text("With the main window active, hold Right Click to operate the camera view.");
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Text("While holding right click, move the mouse to look around.");
+    ImGui::Text("While holding right click, use WASD to move.");
+    ImGui::Text("Use the Space Bar and C to go up and down.");
+
+    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
+
+    ImGui::Text("Rendering modes");
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    const char* modeTags[] = { "Textured Quad", "Direct Meshes", "Direct Frame Buffer", "Defferred Shading" };
+    if (ImGui::BeginCombo("Render mode", modeTags[app->mode]))
+    {
+        for (int n = 0; n < ARRAY_COUNT(modeTags); n++)
+        {
+            bool selected = (n == app->mode);
+
+            if (ImGui::Selectable(modeTags[n], selected))
+                app->mode = Mode(n);
+
+            if (selected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+    if (app->mode == Mode_DeferredRenderTextures)
+    {
+        const char* renderTexTags[] = { "Albedo", "Normals", "Position", "Depth", "Final image" };
+        if (ImGui::BeginCombo("Render Textures", renderTexTags[app->renderTexMode]))
+        {
+            for (int n = 0; n < ARRAY_COUNT(renderTexTags); n++)
+            {
+                bool selected = (n == app->renderTexMode);
+
+                if (ImGui::Selectable(renderTexTags[n], selected))
+                    app->renderTexMode = RenderTextureMode(n);
+
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+
+    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
 
     if (ImGui::CollapsingHeader("Camera transformation matrix", ImGuiTreeNodeFlags_None))
     {
@@ -782,20 +827,6 @@ void Gui(App* app)
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
-
-    if (app->input.keys[K_0] == BUTTON_PRESS) { app->mode = Mode_TexturedQuad; }
-    if (app->input.keys[K_1] == BUTTON_PRESS) { app->mode = Mode_Meshes; }
-    if (app->input.keys[K_2] == BUTTON_PRESS) { app->mode = Mode_FrameBuffer; }
-    if (app->input.keys[K_3] == BUTTON_PRESS) { app->mode = Mode_DeferredRenderTextures; }
-
-    if (app->mode == Mode_DeferredRenderTextures)
-    {
-        if (app->input.keys[K_5] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Albedo; }
-        if (app->input.keys[K_6] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Normals; }
-        if (app->input.keys[K_7] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Position; }
-        if (app->input.keys[K_8] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Depth; }
-        if (app->input.keys[K_9] == BUTTON_PRESS) { app->renderTexMode = RendTexMode_Deferred; }
-    }
 
     //Shader hot reload
     for (u64 i = 0; i < app->programs.size(); ++i)
