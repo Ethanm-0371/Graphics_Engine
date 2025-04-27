@@ -238,8 +238,11 @@ struct App
 
     // Embedded geometry (in-editor simple meshes such as
     // a screen filling quad, a cube, a sphere...)
-    GLuint embeddedVertices;
-    GLuint embeddedElements;
+    GLuint targetQuad_embeddedVertices;
+    GLuint targetQuad_embeddedElements;
+
+    GLuint screenfillingQuad_embeddedVertices;
+    GLuint screenfillingQuad_embeddedElements;
 
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
@@ -256,7 +259,8 @@ struct App
     GLuint deferredLightingPass_albedoTexture;
 
     // VAO object to link our screen filling quad with our textured quad shader
-    GLuint vao;
+    GLuint screenFilling_vao;
+    GLuint target_vao;
 
     //Uniforms buffer
     Buffer uniformsBuffer;
