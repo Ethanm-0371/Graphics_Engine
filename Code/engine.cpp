@@ -445,8 +445,6 @@ void Init(App* app)
     }
 
     getOpenGlInfo(app);
-    //We want OpenGL to handle z-buffer shenanigans for us
-    glEnable(GL_DEPTH_TEST);
 
     // TODO: Initialize your resources here!
     // - vertex buffers
@@ -550,11 +548,14 @@ void Init(App* app)
 
     #pragma endregion
 
+    #pragma region Dice Program init
 
     //Load the dice image program
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); //This is used to render a plane
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
+
+    #pragma endregion
 
     #pragma region Direct Mode init
 
@@ -648,79 +649,13 @@ void Init(App* app)
 
     app->deferredLightingProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "DEFERRED_LIGHTING_PASS"); //This is used for the deferred lighting pass
     Program& deferredLightingProgram = app->programs[app->deferredLightingProgramIdx];
-    //Manually passing the attributes
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
-
-    /*
-
-    //All of this reads the attributes from the mesh, and stores them to send them later
-    GLint attributeCount = 0;
-    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
-
-    //This gets the length of the longest attribute name, so that the buffer
-    //of said length can be allocated to then fill with the actual name
-    GLint maxAttributeNameLength = 0;
-    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &maxAttributeNameLength);
-
-    for (u64 i = 0; i < attributeCount; ++i)
-    {
-        std::string attributeName(maxAttributeNameLength, '\0'); //+null terminator
-        GLsizei attributeNameLength;
-        GLint attributeSize;
-        GLenum attributeType;
-
-        glGetActiveAttrib(deferredLightingProgram.handle, i,
-            maxAttributeNameLength,
-            &attributeNameLength,
-            &attributeSize,
-            &attributeType,
-            &attributeName[0]);
-
-        attributeName.resize(attributeNameLength);
-
-        //This maybe has to be changed to fit the needs of the shader
-        u8 attributeLocation = glGetAttribLocation(deferredLightingProgram.handle, attributeName.c_str());
-        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
-
-        deferredLightingProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
-    }
-
-    */
 
     //I think this has to be done at some point to set a variable so that it doesn't explode.
     //No, it is not that. I think that this reads the position of the texture uniform to store its 
     //index so that it can be used later to pass the desired texture to the shader in said position.
-    
     app->deferredLightingPass_posTexture = glGetUniformLocation(deferredLightingProgram.handle, "positionTexture");
     app->deferredLightingPass_normalTexture = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
     app->deferredLightingPass_albedoTexture = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
-    //GLint location0 = glGetUniformLocation(deferredLightingProgram.handle, "positionTexture");
-    //GLint location1 = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
-    //GLint location2 = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
-
-    //TESTING
-    GLint test_uniformCount = 0;
-    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_UNIFORMS, &test_uniformCount);
-
-    GLint test_maxUniformNameLength = 0;
-    glGetProgramiv(deferredLightingProgram.handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &test_maxUniformNameLength);
-
-    for (u64 i = 0; i < test_uniformCount; ++i)
-    {
-        std::string uniformName(test_maxUniformNameLength, '\0'); //+null terminator
-        GLsizei uniformNameLength;
-        GLint uniformSize;
-        GLenum uniformType;
-
-        glGetActiveUniform(deferredLightingProgram.handle, i,
-            test_maxUniformNameLength,
-            &uniformNameLength,
-            &uniformSize,
-            &uniformType,
-            &uniformName[0]);
-    }
-    //TESTING
 
     #pragma endregion
 
@@ -767,8 +702,6 @@ void Init(App* app)
     
     GenFrameBuffers(app);
 
-    //app->mode = Mode_TexturedQuad;
-    //app->mode = Mode_Meshes;
     app->mode = Mode_DeferredRenderTextures;
     app->renderTexMode = RendTexMode_Deferred;
 }
@@ -1178,8 +1111,7 @@ void Render(App* app)
             //Select on which render targets to draw
             GLuint drawBuffers[] = { GL_COLOR_ATTACHMENT0,      //Albedo
                                      GL_COLOR_ATTACHMENT1,      //Normals
-                                     GL_COLOR_ATTACHMENT2 };  //Position
-                                     //GL_COLOR_ATTACHMENT3 };    //Deferred
+                                     GL_COLOR_ATTACHMENT2 };    //Position
             glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
 
             //Clear color and depth (only if required)
@@ -1202,7 +1134,6 @@ void Render(App* app)
 
             for (Entity& entity : app->entityList)
             {
-                //Model& model = app->models[app->patrickModel];
                 Model& model = app->models[entity.model];
                 Mesh& mesh = app->meshes[model.meshIdx];
 
@@ -1231,12 +1162,9 @@ void Render(App* app)
 
             //End of code loops----------------
             
-            //Insert shading pass here--------------------------------------
+            //Start of shading pass--------------------------------------
 
             glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
-
-            //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
