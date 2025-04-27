@@ -124,24 +124,48 @@ layout(location = 0) out vec4 oColor;
 
 void main()
 {
-	// retrieve data from G-buffer
-    vec3 FragPos = texture(positionTexture, vTexCoord).rgb;
-    vec3 Normal = texture(normalTexture, vTexCoord).rgb;
-    vec3 Albedo = texture(albedoTexture, vTexCoord).rgb;
-    
-    // then calculate lighting as usual
-    vec3 lighting = Albedo * 0.1; // hard-coded ambient component
-    vec3 viewDir = normalize(uCameraPosition - FragPos);
-    for(int i = 0; i < uLightCount; ++i)
-    {
-        // diffuse
-        vec3 lightDir = normalize(uLight[i].position - FragPos);
-        vec3 diffuse = max(dot(Normal, lightDir), 0.0) * Albedo * uLight[i].color;
-        lighting += diffuse;
-    }
-    
-    oColor = vec4(lighting, 1.0);
-    //oColor = vec4(1,1,0, 1.0);
+	vec3 position = texture(positionTexture, vTexCoord).rgb;
+	vec3 norm = texture(normalTexture, vTexCoord).rgb;
+	vec3 texColor = texture(albedoTexture, vTexCoord).rgb;
+
+	//Ambient
+	float ambientStrength = 0.2;
+	vec3 ambientColor = vec3(1.0f);
+    vec3 ambient = ambientStrength * ambientColor;
+
+	vec3 result = vec3(0);
+
+	for(int i = 0; i < uLightCount; i++)
+	{
+		//Check if point or dir
+		vec3 lightDir; 
+		if (uLight[i].type == 0) //Directional
+		{
+			lightDir = normalize(uLight[i].direction);
+		}
+		else if (uLight[i].type == 1)
+		{
+			lightDir = normalize(uLight[i].position - position);
+		}
+
+		//Diffuse
+		float diff = max(dot(norm, lightDir), 0.0);
+		vec3 diffuse = diff * uLight[i].color * uLight[i].strength;
+
+		//Specular
+		float specularStrength = 0.5f;
+		int specularShininess = 8;
+		vec3 viewDir = normalize(uCameraPosition - position);
+		vec3 reflectDir = reflect(-lightDir, norm);
+
+		float spec = pow(max(dot(viewDir, reflectDir), 0.0), pow(specularShininess, 2));
+		vec3 specular = specularStrength * spec * uLight[i].color * uLight[i].strength;
+
+		//Final
+		result += (ambient + diffuse + specular) * texColor;
+	}
+	
+    oColor = vec4(result, 1.0);
 }
 
 #endif
