@@ -463,10 +463,10 @@ void Init(App* app)
     //This is for loading the dice image manually
     const VertexV3V2 tq_vertices[] =
     {
-        { glm::vec3(-0.8, -0.8, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
-        { glm::vec3(0.8, -0.8, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
-        { glm::vec3(0.8, 0.8, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
-        { glm::vec3(-0.8, 0.8, 0.0),    glm::vec2(0.0, 1.0) } //top-left
+        { glm::vec3(-1.0, -1.0, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
+        { glm::vec3(1.0, -1.0, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
+        { glm::vec3(1.0, 1.0, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
+        { glm::vec3(-1.0, 1.0, 0.0),    glm::vec2(0.0, 1.0) } //top-left
     };
 
     const u16 tq_indices[] =
@@ -1304,7 +1304,7 @@ void Render(App* app)
             
             //Start of shading pass--------------------------------------
 
-            glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
+            glDisable(GL_DEPTH_TEST);
 
             glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
@@ -1332,6 +1332,8 @@ void Render(App* app)
             glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
             glBindVertexArray(0);
             glUseProgram(0);
+
+            glEnable(GL_DEPTH_TEST);
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -1372,9 +1374,18 @@ void Render(App* app)
 
             //Shading visualization start--------------------------------------------------------------
 
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_DEPTH_BUFFER_BIT);
+            //We first clear the depth buffer with the rendertexture quad
 
+            //Then we copy the G-Buffer depth to the default depth buffer to render the cubes as if their depth was the scene's.
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, app->deferredFrameBufferHandle);
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+            glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y,
+                              0, 0, app->displaySize.x, app->displaySize.y,
+                              GL_DEPTH_BUFFER_BIT, GL_NEAREST
+            );
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            //And then we proceed as usual
             glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
             Program& lightsVisProgram = app->programs[app->lightVisualizationProgramIdx];
@@ -1383,15 +1394,9 @@ void Render(App* app)
 
             glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
 
-            //This enables transpareny
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-            //No txture binding needed
-            //glUniform1i(app->programUniformTexture, 0);
-            //glActiveTexture(GL_TEXTURE0);
-            //GLuint bs_textureHandle = app->textures[app->diceTexIdx].handle;
-            //glBindTexture(GL_TEXTURE_2D, bs_textureHandle);
+            //This enables transpareny?
+            //glEnable(GL_BLEND);
+            //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             for (u32 i = 0; i < app->lightList.size(); ++i)
             {
@@ -1399,8 +1404,6 @@ void Render(App* app)
                 glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatsBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
                 glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
             }
-
-            glDisable(GL_DEPTH_TEST);
 
             glBindVertexArray(0);
             glUseProgram(0);
