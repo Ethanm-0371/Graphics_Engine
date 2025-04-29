@@ -553,16 +553,26 @@ void Init(App* app)
     //This is for loading the dice image manually
     const VertexV3V2 cube_vertices[] =
     {
-        { glm::vec3(-1.0, -1.0, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
-        { glm::vec3(1.0, -1.0, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
-        { glm::vec3(1.0, 1.0, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
-        { glm::vec3(-1.0, 1.0, 0.0),    glm::vec2(0.0, 1.0) } //top-left
+        { glm::vec3(-1.0, 1.0, -1.0),   glm::vec2(0.0, 0.0) }, //0
+        { glm::vec3(-1.0, -1.0, -1.0),  glm::vec2(0.0, 0.0) }, //1
+        { glm::vec3(1.0, 1.0, -1.0),    glm::vec2(0.0, 0.0) }, //2
+        { glm::vec3(1.0, -1.0, -1.0),   glm::vec2(0.0, 0.0) }, //3
+        { glm::vec3(1.0, 1.0, 1.0),     glm::vec2(0.0, 0.0) }, //4
+        { glm::vec3(1.0, -1.0, 1.0),    glm::vec2(0.0, 0.0) }, //5
+        { glm::vec3(-1.0, 1.0, 1.0),    glm::vec2(0.0, 0.0) }, //6
+        { glm::vec3(-1.0, -1.0, 1.0),   glm::vec2(0.0, 0.0) }, //7
     };
 
     const u16 cube_indices[] =
     {
-        0,1,2,
-        0,2,3
+        //Tri direction is counter clockwise
+
+        0,1,2, 1,3,2, //Front
+        2,3,5, 2,5,4, //Right
+        4,5,7, 4,7,6, //Back
+        0,6,7, 0,7,1, //Left
+        0,2,6, 2,4,6, //Top
+        1,7,3, 3,7,5  //Bottom
     };
 
     //Prepare geometry manually
@@ -588,7 +598,7 @@ void Init(App* app)
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
     glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->targetQuad_embeddedElements);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->cube_embeddedElements);
     glBindVertexArray(0);
 
     #pragma endregion
@@ -785,6 +795,7 @@ void Init(App* app)
 
     //Create the buffer to pass the transforms to the shader
     app->uniformsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
+    app->lightMatsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
     
     GenFrameBuffers(app);
 
@@ -1046,6 +1057,18 @@ void Update(App* app)
     }
     
     UnmapBuffer(app->uniformsBuffer);
+
+    MapBuffer(app->lightMatsBuffer, GL_WRITE_ONLY);
+
+    for (Light& light : app->lightList)
+    {
+        mat4 worldViewProjection = projection * view * TransformPositionScale(light.position, vec3(0.2f));
+
+        AlignHead(app->lightMatsBuffer, app->uniformBlockAlignment);
+
+        PushMat4(app->lightMatsBuffer, worldViewProjection);
+    }
+    UnmapBuffer(app->lightMatsBuffer);
 }
 
 void Render(App* app)
@@ -1349,47 +1372,32 @@ void Render(App* app)
 
             //Shading visualization start--------------------------------------------------------------
 
-            //glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            glEnable(GL_DEPTH_TEST);
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_DEPTH_BUFFER_BIT);
 
             glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-            Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
-            glUseProgram(lightVisProgram.handle);
+            Program& lightsVisProgram = app->programs[app->lightVisualizationProgramIdx];
+            glUseProgram(lightsVisProgram.handle);
+            glBindVertexArray(app->cube_vao); //This can be here bc is the same for all (for now)
 
-
-            //Bind buffer for global params
             glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
 
-            for (Entity& entity : app->entityList)
+            //This enables transpareny
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            //No txture binding needed
+            //glUniform1i(app->programUniformTexture, 0);
+            //glActiveTexture(GL_TEXTURE0);
+            //GLuint bs_textureHandle = app->textures[app->diceTexIdx].handle;
+            //glBindTexture(GL_TEXTURE_2D, bs_textureHandle);
+
+            for (u32 i = 0; i < app->lightList.size(); ++i)
             {
-                //Model& model = app->models[app->patrickModel];
-                //Model& model = app->models[entity.model];
-                //Mesh& mesh = app->meshes[model.meshIdx];
-
-                //Bind buffer per entity
-                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
-
-                //for (u32 i = 0; i < mesh.submeshes.size(); ++i)
-                for (Light light : app->lightList)
-                {
-                    //GLuint vao = FindVAO(mesh, i, lightVisProgram);
-                    //glBindVertexArray(vao);
-                    glBindVertexArray(app->cube_vao);
-
-                    //I assume this is to paint the model texture
-                    //u32 submeshMaterialIdx = model.materialIdx[i];
-                    //Material& submeshMaterial = app->materials[submeshMaterialIdx];
-                    //glActiveTexture(GL_TEXTURE0);
-                    //glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-                    //glUniform1i(app->texturedMeshProgram_uTexture, 0);
-
-                    //Submesh& submesh = mesh.submeshes[i];
-                    //glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
-                    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-                }
+                glUniform3f(0, app->lightList[i].color.x, app->lightList[i].color.y, app->lightList[i].color.z); //First param is 0 bc it is the only uniform in the shader
+                glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatsBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
             }
 
             glDisable(GL_DEPTH_TEST);

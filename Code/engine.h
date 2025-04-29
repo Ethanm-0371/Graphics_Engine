@@ -275,6 +275,9 @@ struct App
 
     GLint globalParamsSize;
 
+    //Light matrices buffer
+    Buffer lightMatsBuffer;
+
     GLuint albedoAttachmentHandle;
     GLuint normalsAttachmentHandle;
     GLuint positionAttachmentHandle;
