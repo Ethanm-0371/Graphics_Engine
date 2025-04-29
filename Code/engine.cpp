@@ -558,6 +558,131 @@ void Init(App* app)
 
     #pragma endregion
 
+    #pragma region Sphere Shape init 144 indices
+
+    //This is for loading the dice image manually
+    const VertexV3V2 sphere_vertices[] =
+    {
+        { glm::vec3(0.000000f, 1.000000f, 0.000000f), glm::vec2(0.0, 0.0) }, // 0
+        { glm::vec3(0.707107f,  0.707107f, 0.000000f), glm::vec2(0.0, 0.0) }, // 1
+        { glm::vec3(0.500000f, 0.707107f, 0.500000f), glm::vec2(0.0, 0.0) }, // 2
+        { glm::vec3(0.000000f, 0.707107f, 0.707107f), glm::vec2(0.0, 0.0) }, // 3
+        { glm::vec3(-0.500000f, 0.707107f, 0.500000f), glm::vec2(0.0, 0.0) }, // 4
+        { glm::vec3(-0.707107f, 0.707107f, 0.000000f), glm::vec2(0.0, 0.0) }, // 5
+        { glm::vec3(-0.500000f, 0.707107f, -0.500000f), glm::vec2(0.0, 0.0) }, // 6
+        { glm::vec3(0.000000f, 0.707107f, -0.707107f), glm::vec2(0.0, 0.0) }, // 7
+        { glm::vec3(0.500000f, 0.707107f, -0.500000f), glm::vec2(0.0, 0.0) }, // 8
+
+        { glm::vec3(1.000000f, 0.000000f, 0.000000f), glm::vec2(0.0, 0.0) }, // 9
+        { glm::vec3(0.707107f, 0.000000f, 0.707107f), glm::vec2(0.0, 0.0) }, // 10
+        { glm::vec3(0.000000f, 0.000000f, 1.000000f), glm::vec2(0.0, 0.0) }, // 11
+        { glm::vec3(-0.707107f, 0.000000f, 0.707107f), glm::vec2(0.0, 0.0) }, // 12
+        { glm::vec3(-1.000000f, 0.000000f, 0.000000f), glm::vec2(0.0, 0.0) }, // 13
+        { glm::vec3(-0.707107f, 0.000000f, -0.707107f), glm::vec2(0.0, 0.0) }, // 14
+        { glm::vec3(0.000000f, 0.000000f, -1.000000f), glm::vec2(0.0, 0.0) }, // 15
+        { glm::vec3(0.707107f, 0.000000f, -0.707107f), glm::vec2(0.0, 0.0) }, // 16
+
+        { glm::vec3(0.707107f, -0.707107f, 0.000000f), glm::vec2(0.0, 0.0) }, // 17
+        { glm::vec3(0.500000f, -0.707107f, 0.500000f), glm::vec2(0.0, 0.0) }, // 18
+        { glm::vec3(0.000000f, -0.707107f, 0.707107f), glm::vec2(0.0, 0.0) }, // 19
+        { glm::vec3(-0.500000f, -0.707107f, 0.500000f), glm::vec2(0.0, 0.0) }, // 20
+        { glm::vec3(-0.707107f, -0.707107f, 0.000000f), glm::vec2(0.0, 0.0) }, // 21
+        { glm::vec3(-0.500000f, -0.707107f, -0.500000f), glm::vec2(0.0, 0.0) }, // 22
+        { glm::vec3(0.000000f, -0.707107f, -0.707107f), glm::vec2(0.0, 0.0) }, // 23
+        { glm::vec3(0.500000f, -0.707107f, -0.500000f), glm::vec2(0.0, 0.0) }, // 24
+
+        { glm::vec3(0.000000f, -1.000000f, 0.000000f), glm::vec2(0.0, 0.0) }, // 25
+    };
+
+    const u16 sphere_indices[] =
+    {
+        //Tri direction is counter clockwise
+
+        // Top cap (first ring)
+        0, 1, 2,
+        0, 2, 3,
+        0, 3, 4,
+        0, 4, 5,
+        0, 5, 6,
+        0, 6, 7,
+        0, 7, 8,
+        0, 8, 1,
+
+        // Middle rings (ring 1 to 2)
+        1, 9, 2,
+        2, 9, 10,
+        2, 10, 3,
+        3, 10, 11,
+        3, 11, 4,
+        4, 11, 12,
+        4, 12, 5,
+        5, 12, 13,
+        5, 13, 6,
+        6, 13, 14,
+        6, 14, 7,
+        7, 14, 15,
+        7, 15, 8,
+        8, 15, 16,
+        8, 16, 1,
+        1, 16, 9,
+
+        // Ring 2 to 3
+        9, 17, 10,
+        10, 17, 18,
+        10, 18, 11,
+        11, 18, 19,
+        11, 19, 12,
+        12, 19, 20,
+        12, 20, 13,
+        13, 20, 21,
+        13, 21, 14,
+        14, 21, 22,
+        14, 22, 15,
+        15, 22, 23,
+        15, 23, 16,
+        16, 23, 24,
+        16, 24, 9,
+        9, 24, 17,
+
+        // Bottom cap
+        25, 18, 17,
+        25, 19, 18,
+        25, 20, 19,
+        25, 21, 20,
+        25, 22, 21,
+        25, 23, 22,
+        25, 24, 23,
+        25, 17, 24,
+    };
+
+    //Prepare geometry manually
+    //VBO
+    glGenBuffers(1, &app->sphere_embeddedVertices);
+    glBindBuffer(GL_ARRAY_BUFFER, app->sphere_embeddedVertices);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(sphere_vertices), sphere_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    //EBO
+    glGenBuffers(1, &app->sphere_embeddedElements);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->sphere_embeddedElements);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(sphere_indices), sphere_indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    //VAO, we do this in render, in FindVAOs
+    glGenVertexArrays(1, &app->sphere_vao);
+    glBindVertexArray(app->sphere_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, app->sphere_embeddedVertices);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
+    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
+    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->sphere_embeddedElements);
+    glBindVertexArray(0);
+
+    #pragma endregion
+
     #pragma region Dice Program init
 
     //Load the dice image program
@@ -743,6 +868,8 @@ void Init(App* app)
     app->lightList.push_back({ LightType_Point, 1, vec3(1,0,0), vec3(0), vec3(0,0.1,0) });
     app->lightList.push_back({ LightType_Point, 1, vec3(0,1,0), vec3(0), vec3(1,3,1.5) });
     app->lightList.push_back({ LightType_Point, 1, vec3(0,0,1), vec3(0), vec3(-1,3,1.5) });
+
+    app->lightList.push_back({ LightType_Directional, 1, vec3(1,1,0), vec3(0,-1, 0), vec3(0,5,0) });
 
     //Get info to create and use uniforms buffer
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &app->maxUniformBufferSize);
@@ -1345,7 +1472,6 @@ void Render(App* app)
 
             Program& lightsVisProgram = app->programs[app->lightVisualizationProgramIdx];
             glUseProgram(lightsVisProgram.handle);
-            glBindVertexArray(app->cube_vao); //This can be here bc is the same for all (for now)
 
             glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
 
@@ -1355,12 +1481,28 @@ void Render(App* app)
 
             for (u32 i = 0; i < app->lightList.size(); ++i)
             {
-                glUniform3f(0, app->lightList[i].color.x, app->lightList[i].color.y, app->lightList[i].color.z); //First param is 0 bc it is the only uniform in the shader
+                Light currentLight = app->lightList[i];
+
+                //Binding and unbinding for each entity is not the most efficient (not batching), but will do
+                GLsizei indexAmount;
+                if (currentLight.type == LightType_Directional)
+                {
+                    glBindVertexArray(app->cube_vao); 
+                    indexAmount = 36;
+                }
+                else
+                {
+                    glBindVertexArray(app->sphere_vao); 
+                    indexAmount = 144;
+                }
+
+                glUniform3f(0, currentLight.color.x, currentLight.color.y, currentLight.color.z); //First param is 0 bc it is the only uniform in the shader
                 glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatsBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
-                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_SHORT, 0);
+                
+                glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
+                glBindVertexArray(0);
             }
 
-            glBindVertexArray(0);
             glUseProgram(0);
 
             //Shading visualization end----------------------------------------------------------------

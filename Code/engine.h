@@ -245,6 +245,9 @@ struct App
     GLuint cube_embeddedVertices;
     GLuint cube_embeddedElements;
 
+    GLuint sphere_embeddedVertices;
+    GLuint sphere_embeddedElements;
+
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
 
@@ -263,6 +266,7 @@ struct App
     GLuint targetQuad_vao;
 
     GLuint cube_vao;
+    GLuint sphere_vao;
 
     //Uniforms buffer
     Buffer uniformsBuffer;
