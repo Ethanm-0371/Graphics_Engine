@@ -242,9 +242,6 @@ struct App
     GLuint targetQuad_embeddedVertices;
     GLuint targetQuad_embeddedElements;
 
-    GLuint screenfillingQuad_embeddedVertices;
-    GLuint screenfillingQuad_embeddedElements;
-
     GLuint cube_embeddedVertices;
     GLuint cube_embeddedElements;
 
@@ -263,8 +260,7 @@ struct App
     GLuint deferredLightingPass_albedoTexture;
 
     // VAO object to link our screen filling quad with our textured quad shader
-    GLuint screenFilling_vao;
-    GLuint target_vao;
+    GLuint targetQuad_vao;
 
     GLuint cube_vao;
 

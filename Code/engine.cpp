@@ -489,54 +489,9 @@ void Init(App* app)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     //VAO, we do this in render, in FindVAOs
-    glGenVertexArrays(1, &app->target_vao);
-    glBindVertexArray(app->target_vao);
+    glGenVertexArrays(1, &app->targetQuad_vao);
+    glBindVertexArray(app->targetQuad_vao);
     glBindBuffer(GL_ARRAY_BUFFER, app->targetQuad_embeddedVertices);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
-    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
-    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->targetQuad_embeddedElements);
-    glBindVertexArray(0);
-
-    #pragma endregion
-
-    #pragma region Screen-Filling Quad Init
-
-    //This is for loading the dice image manually
-    const VertexV3V2 sf_vertices[] =
-    {
-        { glm::vec3(-1.0, -1.0, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
-        { glm::vec3(1.0, -1.0, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
-        { glm::vec3(1.0, 1.0, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
-        { glm::vec3(-1.0, 1.0, 0.0),    glm::vec2(0.0, 1.0) } //top-left
-    };
-
-    const u16 sf_indices[] =
-    {
-        0,1,2,
-        0,2,3
-    };
-
-    //Prepare geometry manually
-    //VBO
-    glGenBuffers(1, &app->screenfillingQuad_embeddedVertices);
-    glBindBuffer(GL_ARRAY_BUFFER, app->screenfillingQuad_embeddedVertices);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(sf_vertices), sf_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    //EBO
-    glGenBuffers(1, &app->targetQuad_embeddedElements);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->targetQuad_embeddedElements);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(sf_indices), sf_indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    //VAO, we do this in render, in FindVAOs
-    glGenVertexArrays(1, &app->screenFilling_vao);
-    glBindVertexArray(app->screenFilling_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, app->screenfillingQuad_embeddedVertices);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
     glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
@@ -1093,7 +1048,7 @@ void Render(App* app)
 
                 Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
                 glUseProgram(programTexturedGeometry.handle);
-                glBindVertexArray(app->target_vao);
+                glBindVertexArray(app->targetQuad_vao);
 
                 glEnable(GL_BLEND);
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1227,7 +1182,7 @@ void Render(App* app)
 
             Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
             glUseProgram(programTexturedGeometry.handle);
-            glBindVertexArray(app->target_vao);
+            glBindVertexArray(app->targetQuad_vao);
 
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1310,7 +1265,7 @@ void Render(App* app)
 
             Program& shadingPassProgram = app->programs[app->deferredLightingProgramIdx];
             glUseProgram(shadingPassProgram.handle);
-            glBindVertexArray(app->screenFilling_vao);
+            glBindVertexArray(app->targetQuad_vao);
 
             //Bind buffer for global params
             glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
@@ -1346,7 +1301,7 @@ void Render(App* app)
 
             Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
             glUseProgram(programTexturedGeometry.handle);
-            glBindVertexArray(app->target_vao);
+            glBindVertexArray(app->targetQuad_vao);
 
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
