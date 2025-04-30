@@ -1,4 +1,5 @@
 #include "assimp_loading.h"
+#include "resource_management.h"
 
 void ProcessAssimpMesh(const aiScene* scene, aiMesh* mesh, Mesh* myMesh, u32 baseMeshMaterialIndex, std::vector<u32>& submeshMaterialIndices)
 {

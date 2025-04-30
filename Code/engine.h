@@ -15,7 +15,8 @@ typedef glm::ivec3 ivec3;
 typedef glm::ivec4 ivec4;
 typedef glm::mat4  mat4;
 
-//Shader
+#pragma region Resource Management
+
 struct Image
 {
     void* pixels;
@@ -28,24 +29,6 @@ struct Texture
 {
     GLuint      handle;
     std::string filepath;
-};
-
-enum Mode
-{
-    Mode_TexturedQuad,
-    Mode_Meshes,
-    Mode_FrameBuffer,
-    Mode_DeferredRenderTextures,
-    Mode_Count
-};
-enum RenderTextureMode
-{
-    RendTexMode_Albedo,
-    RendTexMode_Normals,
-    RendTexMode_Position,
-    RendTexMode_Depth,
-    RendTexMode_Deferred,
-    RendTexMode_Count
 };
 
 //VBO, EBO, shader, VAO stuff
@@ -117,6 +100,36 @@ struct Material
     u32 bumpTextureIdx;
 };
 
+struct Program
+{
+    GLuint             handle;
+    std::string        filepath;
+    std::string        programName;
+    u64                lastWriteTimestamp;
+    VertexShaderLayout vertexInputLayout;
+};
+
+#pragma endregion
+
+enum Mode
+{
+    Mode_TexturedQuad,
+    Mode_Meshes,
+    Mode_FrameBuffer,
+    Mode_DeferredRenderTextures,
+    Mode_Count
+};
+
+enum RenderTextureMode
+{
+    RendTexMode_Albedo,
+    RendTexMode_Normals,
+    RendTexMode_Position,
+    RendTexMode_Depth,
+    RendTexMode_Deferred,
+    RendTexMode_Count
+};
+
 //Buffer
 struct Buffer
 {
@@ -164,15 +177,6 @@ struct Light
     vec3 color;
     vec3 direction;
     vec3 position;
-};
-
-struct Program
-{
-    GLuint             handle;
-    std::string        filepath;
-    std::string        programName;
-    u64                lastWriteTimestamp;
-    VertexShaderLayout vertexInputLayout;
 };
 
 //App
@@ -289,8 +293,6 @@ struct App
     GLuint directFrameBufferHandle;
     GLuint deferredFrameBufferHandle;
 };
-
-u32 LoadTexture2D(App* app, const char* filepath, GLuint texParams = GL_LINEAR);
 
 void GenFrameBuffers(App* app);
 
