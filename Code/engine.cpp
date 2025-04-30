@@ -110,6 +110,7 @@ void GenFrameBuffers(App* app)
 {
     // Direct lighting to render texture buffer -----------------------------------------------------------------------
     GenerateTextureBuffer(app, app->frameBufferAttachmentHandle);
+    GenerateDepthBuffer(app, app->depthAttachmentHandle);
 
     glGenFramebuffers(1, &app->directFrameBufferHandle);
     glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
@@ -142,8 +143,6 @@ void GenFrameBuffers(App* app)
     GenerateTextureBuffer(app, app->normalsAttachmentHandle);
     GenerateTextureBuffer(app, app->positionAttachmentHandle);
     GenerateTextureBuffer(app, app->deferredAttachmentHandle);
-
-    GenerateDepthBuffer(app, app->depthAttachmentHandle);
 
     //Create the Frame Buffer where all the textures will be stored
     glGenFramebuffers(1, &app->deferredFrameBufferHandle);
