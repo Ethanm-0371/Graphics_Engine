@@ -80,11 +80,11 @@ void OnGlError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei l
     }
 }
 
-void GenFrameBuffers(App* app)
+void GenerateTextureBuffer(App* app, GLuint& attachmentHandle)
 {
-    // Color buffer
-    glGenTextures(1, &app->albedoAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->albedoAttachmentHandle);
+    glGenTextures(1, &attachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, attachmentHandle);
+
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -92,64 +92,35 @@ void GenFrameBuffers(App* app)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+void GenerateDepthBuffer(App* app, GLuint& attachmentHandle)
+{
+    glGenTextures(1, &attachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, attachmentHandle);
 
-    // Normals buffer
-    glGenTextures(1, &app->normalsAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->normalsAttachmentHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Position buffer
-    glGenTextures(1, &app->positionAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->positionAttachmentHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Deferred buffer
-    glGenTextures(1, &app->deferredAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->deferredAttachmentHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    // Depth buffer
-    glGenTextures(1, &app->depthAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->depthAttachmentHandle);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, app->displaySize.x, app->displaySize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
 
+void GenFrameBuffers(App* app)
+{
+    // Direct lighting to render texture buffer -----------------------------------------------------------------------
+    GenerateTextureBuffer(app, app->frameBufferAttachmentHandle);
 
-    glGenFramebuffers(1, &app->deferredFrameBufferHandle);
-    glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
+    glGenFramebuffers(1, &app->directFrameBufferHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->albedoAttachmentHandle, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app->normalsAttachmentHandle, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->positionAttachmentHandle, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->frameBufferAttachmentHandle, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
-    GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE)
+    GLenum directFramebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (directFramebufferStatus != GL_FRAMEBUFFER_COMPLETE)
     {
-        switch (framebufferStatus)
+        switch (directFramebufferStatus)
         {
         case GL_FRAMEBUFFER_UNDEFINED:ELOG("GL_FRAMEBUFFER_UNDEFINED"); break;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:ELOG("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT"); break;
@@ -165,29 +136,29 @@ void GenFrameBuffers(App* app)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    //---------------------------------------------------------------------------
+    // Defferred lighting to render texture buffer --------------------------------------------------------------------
 
-    // Direct render texture buffer
-    glGenTextures(1, &app->frameBufferAttachmentHandle);
-    glBindTexture(GL_TEXTURE_2D, app->frameBufferAttachmentHandle);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    GenerateTextureBuffer(app, app->albedoAttachmentHandle);
+    GenerateTextureBuffer(app, app->normalsAttachmentHandle);
+    GenerateTextureBuffer(app, app->positionAttachmentHandle);
+    GenerateTextureBuffer(app, app->deferredAttachmentHandle);
 
-    glGenFramebuffers(1, &app->directFrameBufferHandle);
-    glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
+    GenerateDepthBuffer(app, app->depthAttachmentHandle);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->frameBufferAttachmentHandle, 0);
+    //Create the Frame Buffer where all the textures will be stored
+    glGenFramebuffers(1, &app->deferredFrameBufferHandle);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, app->albedoAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app->normalsAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->positionAttachmentHandle, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
-    GLenum directFramebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (directFramebufferStatus != GL_FRAMEBUFFER_COMPLETE)
+    GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE)
     {
-        switch (directFramebufferStatus)
+        switch (framebufferStatus)
         {
         case GL_FRAMEBUFFER_UNDEFINED:ELOG("GL_FRAMEBUFFER_UNDEFINED"); break;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:ELOG("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT"); break;
