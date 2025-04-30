@@ -241,17 +241,6 @@ struct App
     RenderTextureMode renderTexMode;
     Camera camera;
 
-    // Embedded geometry (in-editor simple meshes such as
-    // a screen filling quad, a cube, a sphere...)
-    GLuint targetQuad_embeddedVertices;
-    GLuint targetQuad_embeddedElements;
-
-    GLuint cube_embeddedVertices;
-    GLuint cube_embeddedElements;
-
-    GLuint sphere_embeddedVertices;
-    GLuint sphere_embeddedElements;
-
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
 
@@ -266,9 +255,8 @@ struct App
     GLuint deferredLightingPass_normalTexture;
     GLuint deferredLightingPass_albedoTexture;
 
-    // VAO object to link our screen filling quad with our textured quad shader
+    // VAOs
     GLuint targetQuad_vao;
-
     GLuint cube_vao;
     GLuint sphere_vao;
 

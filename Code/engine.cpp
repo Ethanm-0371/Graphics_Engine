@@ -93,6 +93,7 @@ void GenerateTextureBuffer(App* app, GLuint& attachmentHandle)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
+
 void GenerateDepthBuffer(App* app, GLuint& attachmentHandle)
 {
     glGenTextures(1, &attachmentHandle);
@@ -174,6 +175,37 @@ void GenFrameBuffers(App* app)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void InitPrimitiveGeometry(GLuint& geometryVao, const VertexV3V2 vertices[], GLsizeiptr verticesSize, const u16 indices[], GLsizeiptr indicesSize)
+{
+    GLuint embeddedVerticesIdx;
+    GLuint embeddedElementsIdx;
+
+    //VBO
+    glGenBuffers(1, &embeddedVerticesIdx);
+    glBindBuffer(GL_ARRAY_BUFFER, embeddedVerticesIdx);
+    glBufferData(GL_ARRAY_BUFFER, verticesSize, vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    //EBO
+    glGenBuffers(1, &embeddedElementsIdx);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, embeddedElementsIdx);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesSize, indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+    //VAO, we use this in render, in FindVAOs
+    glGenVertexArrays(1, &geometryVao);
+    glBindVertexArray(geometryVao);
+    glBindBuffer(GL_ARRAY_BUFFER, embeddedVerticesIdx);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
+    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
+    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, embeddedElementsIdx);
+    glBindVertexArray(0);
+}
+
 void Init(App* app)
 {
     if (GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3))
@@ -182,67 +214,22 @@ void Init(App* app)
     }
 
     getOpenGlInfo(app);
+    
+    // Primitive geometry init ----------------------------------------------------------------------------------------
 
-    // TODO: Initialize your resources here!
-    // - vertex buffers
-    // - element/index buffers
-    // - vaos
-    // - programs (and retrieve uniform indices)
-    // - textures
-    struct VertexV3V2
-    {
-        glm::vec3 pos;
-        glm::vec2 uv;
-    };
-
-    #pragma region Target Quad Init
-
-    //This is for loading the dice image manually
-    const VertexV3V2 tq_vertices[] =
+    const VertexV3V2 targetQuad_vertices[] =
     {
         { glm::vec3(-1.0, -1.0, 0.0),   glm::vec2(0.0, 0.0) }, //bottom-left
         { glm::vec3(1.0, -1.0, 0.0),    glm::vec2(1.0, 0.0) }, //bottom-right
         { glm::vec3(1.0, 1.0, 0.0),     glm::vec2(1.0, 1.0) }, //top-right
         { glm::vec3(-1.0, 1.0, 0.0),    glm::vec2(0.0, 1.0) } //top-left
     };
-
-    const u16 tq_indices[] =
+    const u16 targetQuad_indices[] =
     {
         0,1,2,
         0,2,3
     };
 
-    //Prepare geometry manually
-    //VBO
-    glGenBuffers(1, &app->targetQuad_embeddedVertices);
-    glBindBuffer(GL_ARRAY_BUFFER, app->targetQuad_embeddedVertices);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(tq_vertices), tq_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    //EBO
-    glGenBuffers(1, &app->targetQuad_embeddedElements);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->targetQuad_embeddedElements);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(tq_indices), tq_indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    //VAO, we do this in render, in FindVAOs
-    glGenVertexArrays(1, &app->targetQuad_vao);
-    glBindVertexArray(app->targetQuad_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, app->targetQuad_embeddedVertices);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
-    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
-    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->targetQuad_embeddedElements);
-    glBindVertexArray(0);
-
-    #pragma endregion
-
-    #pragma region Cube Shape init
-
-    //This is for loading the dice image manually
     const VertexV3V2 cube_vertices[] =
     {
         { glm::vec3(-1.0, 1.0, -1.0),   glm::vec2(0.0, 0.0) }, //0
@@ -254,7 +241,6 @@ void Init(App* app)
         { glm::vec3(-1.0, 1.0, 1.0),    glm::vec2(0.0, 0.0) }, //6
         { glm::vec3(-1.0, -1.0, 1.0),   glm::vec2(0.0, 0.0) }, //7
     };
-
     const u16 cube_indices[] =
     {
         //Tri direction is counter clockwise
@@ -267,37 +253,6 @@ void Init(App* app)
         1,7,3, 3,7,5  //Bottom
     };
 
-    //Prepare geometry manually
-    //VBO
-    glGenBuffers(1, &app->cube_embeddedVertices);
-    glBindBuffer(GL_ARRAY_BUFFER, app->cube_embeddedVertices);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    //EBO
-    glGenBuffers(1, &app->cube_embeddedElements);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->cube_embeddedElements);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), cube_indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    //VAO, we do this in render, in FindVAOs
-    glGenVertexArrays(1, &app->cube_vao);
-    glBindVertexArray(app->cube_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, app->cube_embeddedVertices);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
-    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
-    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->cube_embeddedElements);
-    glBindVertexArray(0);
-
-    #pragma endregion
-
-    #pragma region Sphere Shape init 144 indices
-
-    //This is for loading the dice image manually
     const VertexV3V2 sphere_vertices[] =
     {
         { glm::vec3(0.000000f, 1.000000f, 0.000000f), glm::vec2(0.0, 0.0) }, // 0
@@ -330,7 +285,6 @@ void Init(App* app)
 
         { glm::vec3(0.000000f, -1.000000f, 0.000000f), glm::vec2(0.0, 0.0) }, // 25
     };
-
     const u16 sphere_indices[] =
     {
         //Tri direction is counter clockwise
@@ -392,33 +346,11 @@ void Init(App* app)
         25, 17, 24,
     };
 
-    //Prepare geometry manually
-    //VBO
-    glGenBuffers(1, &app->sphere_embeddedVertices);
-    glBindBuffer(GL_ARRAY_BUFFER, app->sphere_embeddedVertices);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(sphere_vertices), sphere_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    InitPrimitiveGeometry(app->targetQuad_vao, targetQuad_vertices, sizeof(targetQuad_vertices), targetQuad_indices, sizeof(targetQuad_indices));
+    InitPrimitiveGeometry(app->cube_vao, cube_vertices, sizeof(cube_vertices), cube_indices, sizeof(cube_indices));
+    InitPrimitiveGeometry(app->sphere_vao, sphere_vertices, sizeof(sphere_vertices), sphere_indices, sizeof(sphere_indices));
 
-    //EBO
-    glGenBuffers(1, &app->sphere_embeddedElements);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->sphere_embeddedElements);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(sphere_indices), sphere_indices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    //VAO, we do this in render, in FindVAOs
-    glGenVertexArrays(1, &app->sphere_vao);
-    glBindVertexArray(app->sphere_vao);
-    glBindBuffer(GL_ARRAY_BUFFER, app->sphere_embeddedVertices);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);  //The first parameter is 0 because this is
-    glEnableVertexAttribArray(0);                                                   //the "location" we declare in the shader
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12); //The first parameter is 1 because this is
-    glEnableVertexAttribArray(1);                                                   //the "location" we declare in the shader
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->sphere_embeddedElements);
-    glBindVertexArray(0);
-
-    #pragma endregion
+    // Programs init --------------------------------------------------------------------------------------------------
 
     #pragma region Dice Program init
 
@@ -572,6 +504,8 @@ void Init(App* app)
 
     #pragma endregion
 
+    // Camera init ----------------------------------------------------------------------------------------------------
+
     app->camera = Camera{ mat4(1.0),
                           (float)app->displaySize.x / (float)app->displaySize.y,
                           0.1f,
@@ -582,31 +516,36 @@ void Init(App* app)
     app->camera.transformation = glm::rotate(app->camera.transformation, glm::radians(12.5f), vec3(0, 1, 0) * (glm::mat3)app->camera.transformation);
     app->camera.transformation = glm::rotate(app->camera.transformation, glm::radians(-30.0f), vec3(1, 0, 0));
 
-    //Initialize textures
+    // Textures init --------------------------------------------------------------------------------------------------
+
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
     app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
     app->blackTexIdx = LoadTexture2D(app, "color_black.png");
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    //Initialize models
+    // Models init ----------------------------------------------------------------------------------------------------
+
     app->patrickModel = LoadModel(app, "Patrick/Patrick.obj");
     app->planeModel = LoadModel(app, "Plane/Plane.obj", GL_NEAREST);
 
-    //Place entities in scene
+    // Entities placement ---------------------------------------------------------------------------------------------
+
     app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, 0), vec3(0.5)), app->patrickModel });
     app->entityList.push_back({ TransformPositionScale(vec3(2.5, 1.8, 0), vec3(0.3)), app->patrickModel });
     app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, -2.5), vec3(0.2)), app->patrickModel });
 
     app->entityList.push_back({ TransformPositionScale(vec3(0, 0, 0), vec3(5.0)), app->planeModel });
 
-    //Place lights in scene
-    //app->lightList.push_back({ LightType_Directional, 1, vec3(1,0,0), vec3(1), vec3(0) });
+    // Lights placement -----------------------------------------------------------------------------------------------
+
     app->lightList.push_back({ LightType_Point, 1, vec3(1,0,0), vec3(0), vec3(0,0.1,0) });
     app->lightList.push_back({ LightType_Point, 1, vec3(0,1,0), vec3(0), vec3(1,3,1.5) });
     app->lightList.push_back({ LightType_Point, 1, vec3(0,0,1), vec3(0), vec3(-1,3,1.5) });
 
     app->lightList.push_back({ LightType_Directional, 1, vec3(1,1,0), vec3(0,-1, 0), vec3(0,5,0) });
+
+    // Buffer creation ------------------------------------------------------------------------------------------------
 
     //Get info to create and use uniforms buffer
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &app->maxUniformBufferSize);
@@ -617,6 +556,8 @@ void Init(App* app)
     app->lightMatsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
     
     GenFrameBuffers(app);
+
+    // Set default render mode ----------------------------------------------------------------------------------------
 
     app->mode = Mode_DeferredRenderTextures;
     app->renderTexMode = RendTexMode_Deferred;
