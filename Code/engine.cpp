@@ -13,7 +13,6 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
-//tmp
 mat4 TransformPositionScale(const vec3& pos, const vec3& scaleFactors)
 {
     mat4 transform = glm::translate(pos);
@@ -442,31 +441,8 @@ void Init(App* app)
 
 void Gui(App* app)
 {
-    ImGui::Begin("Info");
-    ImGui::Text("FPS: %f", 1.0f/app->deltaTime);
-    ImGui::Separator();
-
-    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
-
-    ImGui::Text("Controls");
-    ImGui::Separator();
-    ImGui::Spacing();
-
-    ImGui::Text("Click on the main window to select it as the active window.");
-    ImGui::Spacing();
-    ImGui::Spacing();
-    ImGui::Text("With the main window active, hold Right Click to operate the camera view.");
-    ImGui::Spacing();
-    ImGui::Spacing();
-    ImGui::Text("While holding right click, move the mouse to look around.");
-    ImGui::Text("While holding right click, use WASD to move.");
-    ImGui::Text("Use the Space Bar and C to go up and down.");
-
-    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
-
-    ImGui::Text("Rendering modes");
-    ImGui::Separator();
-    ImGui::Spacing();
+    // Rendering modes ------------------------------------------------------------------------------------------------
+    ImGui::Begin("Rendering modes");
 
     const char* modeTags[] = { "Textured Quad", "Direct Meshes", "Direct Frame Buffer", "Defferred Shading" };
     if (ImGui::BeginCombo("Render mode", modeTags[app->mode]))
@@ -483,6 +459,7 @@ void Gui(App* app)
         }
         ImGui::EndCombo();
     }
+
     if (app->mode == Mode_DeferredRenderTextures)
     {
         const char* renderTexTags[] = { "Albedo", "Normals", "Position", "Depth", "Final image" };
@@ -501,6 +478,50 @@ void Gui(App* app)
             ImGui::EndCombo();
         }
     }
+
+    ImGui::End();
+
+    // OpenGL info ----------------------------------------------------------------------------------------------------
+    ImGui::Begin("OpenGL info");
+    ImGui::Text("ImGui version: %s", ImGui::GetVersion());
+
+    ImGui::Text("GL Version: %s", app->GLInfo.version);
+    ImGui::Text("Renderer Version: %s", app->GLInfo.renderer);
+    ImGui::Text("Vendor: %s", app->GLInfo.vendor);
+    ImGui::Text("GLSL Version: %s", app->GLInfo.versionGLSL);
+
+    std::string dropdownTitle = "Extensions [" + std::to_string(app->GLInfo.numExtensions) + "]";
+    if (ImGui::CollapsingHeader(dropdownTitle.c_str(), ImGuiTreeNodeFlags_None))
+    {
+        for (int i = 0; i < app->GLInfo.numExtensions; i++)
+        {
+            std::string name = "[" + std::to_string(i) + "] " + app->GLInfo.extensions[i];
+            ImGui::Text("%s", name.c_str());
+        }
+    }
+
+    ImGui::End();
+
+    // Information ----------------------------------------------------------------------------------------------------
+    ImGui::Begin("Info");
+    ImGui::Text("FPS: %f", 1.0f / app->deltaTime);
+    ImGui::Separator();
+
+    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
+
+    ImGui::Text("Controls");
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::Text("Click on the main window to select it as the active window.");
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Text("With the main window active, hold Right Click to operate the camera view.");
+    ImGui::Spacing();
+    ImGui::Spacing();
+    ImGui::Text("While holding right click, move the mouse to look around.");
+    ImGui::Text("While holding right click, use WASD to move.");
+    ImGui::Text("Use the Space Bar and C to go up and down.");
 
     ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
 
@@ -533,26 +554,6 @@ void Gui(App* app)
             ImGui::Text("%f", cam.transformation[3][3]);
         }
         ImGui::EndTable();
-    }
-
-    ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
-
-    ImGui::Text("OpenGL info");
-    ImGui::Separator();
-    ImGui::Text("ImGui version: %s", ImGui::GetVersion());
-    ImGui::Text("GL Version: %s", app->GLInfo.version);
-    ImGui::Text("Renderer Version: %s", app->GLInfo.renderer);
-    ImGui::Text("Vendor: %s", app->GLInfo.vendor);
-    ImGui::Text("GLSL Version: %s", app->GLInfo.versionGLSL);
-
-    std::string dropdownTitle = "Extensions [" + std::to_string(app->GLInfo.numExtensions) + "]";
-    if (ImGui::CollapsingHeader(dropdownTitle.c_str(), ImGuiTreeNodeFlags_None))
-    {
-        for (int i = 0; i < app->GLInfo.numExtensions; i++)
-        {
-            std::string name = "[" + std::to_string(i) + "] " + app->GLInfo.extensions[i];
-            ImGui::Text("%s", name.c_str());
-        }
     }
 
     ImGui::End();
