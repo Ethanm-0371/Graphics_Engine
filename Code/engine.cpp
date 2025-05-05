@@ -429,7 +429,7 @@ void Init(App* app)
 
     //Create the buffer to pass the transforms to the shader
     app->uniformsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
-    app->lightMatsBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
+    app->lightMatricesBuffer = CreateConstantBuffer(app->maxUniformBufferSize);
     
     GenFrameBuffers(app);
 
@@ -559,11 +559,8 @@ void Gui(App* app)
     ImGui::End();
 }
 
-void Update(App* app)
+void ProgramHotReload(App* app)
 {
-    // You can handle app->input keyboard/mouse here
-
-    //Shader hot reload
     for (u64 i = 0; i < app->programs.size(); ++i)
     {
         Program& program = app->programs[i];
@@ -578,10 +575,10 @@ void Update(App* app)
             program.lastWriteTimestamp = currentTimestamp;
         }
     }
+}
 
-    //Shader Transform update
-    Camera& cam = app->camera;
-
+void HandleInput(App* app, Camera& cam)
+{
     if (app->input.mouseButtons[1] == BUTTON_PRESSED)
     {
         glm::mat3 rotMat = glm::mat3(cam.transformation);
@@ -590,7 +587,7 @@ void Update(App* app)
         vec3 right = rotMat[0];
         vec3 up = rotMat[1];
         vec3 forward = -rotMat[2]; //in OpenGL is back
-        
+
         float movementSpeed = 0.1f;
         if (app->input.keys[K_W] == BUTTON_PRESSED)
         {
@@ -618,13 +615,13 @@ void Update(App* app)
         }
         if (app->input.keys[K_SPACE] == BUTTON_PRESSED)
         {
-            vec3 vecInRefFrame = vec3(0,1,0) * movementSpeed * rotMat;
+            vec3 vecInRefFrame = vec3(0, 1, 0) * movementSpeed * rotMat;
 
             cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
         }
         if (app->input.keys[K_C] == BUTTON_PRESSED)
         {
-            vec3 vecInRefFrame = -vec3(0,1,0) * movementSpeed * rotMat;
+            vec3 vecInRefFrame = -vec3(0, 1, 0) * movementSpeed * rotMat;
 
             cam.transformation = glm::translate(cam.transformation, vecInRefFrame);
         }
@@ -635,32 +632,14 @@ void Update(App* app)
         float yIncrease = app->input.mouseDelta.y;
         cam.transformation = glm::rotate(cam.transformation, glm::radians(-yIncrease / 10.0f), vec3(1, 0, 0));
     }
+}
 
-    //Play with Patricks transforms
-    app->entityList.at(0).transformationMatrix = glm::rotate(app->entityList.at(0).transformationMatrix, glm::radians(1.0f), vec3(0, 1, 0));
-    app->entityList.at(1).transformationMatrix = TransformPositionScale(vec3(app->entityList.at(0).transformationMatrix[2][0] * 3.0f,
-                                                                             app->entityList.at(0).transformationMatrix[2][1] * 3.0f,
-                                                                             app->entityList.at(0).transformationMatrix[2][2] * 3.0f) + 
-                                                                        vec3(0, 1.8, 0),
-                                                                        vec3(0.3f));
-    app->entityList.at(2).transformationMatrix = TransformPositionScale(vec3(0, 1.8, -2.5), vec3(app->entityList.at(0).transformationMatrix[2][0]));
-
-    app->lightList.at(0).position = vec3(app->entityList.at(0).transformationMatrix[2][0] * 5.0f,
-                                         app->entityList.at(0).transformationMatrix[2][1] * 5.0f,
-                                         app->entityList.at(0).transformationMatrix[2][2] * 5.0f) +
-                                    vec3(0, 0.1, 0);
-    //------------------------------
-
-    mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
-
-    mat4 view = glm::inverse(cam.transformation);
-
+void PushSceneToBuffer(App* app, mat4 projection, mat4 view)
+{
     MapBuffer(app->uniformsBuffer, GL_WRITE_ONLY);
 
-    //Push lights to the buffer
-    //app->globalParamsOffset = app->uniformsBuffer.head; //Might need to track where it starts in the future. Not now though.
-
-    PushVec3(app->uniformsBuffer, (vec3)cam.transformation[3]);
+    // Push lights to the buffer --------------------------------------------------------------------------------------
+    PushVec3(app->uniformsBuffer, (vec3)app->camera.transformation[3]);
 
     PushUInt(app->uniformsBuffer, app->lightList.size());
 
@@ -675,13 +654,11 @@ void Update(App* app)
         PushVec3(app->uniformsBuffer, light.position);
     }
 
-    //app->globalParamsSize = app->uniformsBuffer.head - app->globalParamsOffset; //Same as up
     app->globalParamsSize = app->uniformsBuffer.head;
 
-    //Push entities to the buffer
+    // Push entities to the buffer ------------------------------------------------------------------------------------
     for (Entity& entity : app->entityList)
     {
-        //mat4 world = TransformPositionScale(entity.position, entity.scale);
         mat4 worldViewProjection = projection * view * entity.transformationMatrix;
 
         AlignHead(app->uniformsBuffer, app->uniformBlockAlignment);
@@ -693,20 +670,53 @@ void Update(App* app)
 
         entity.size = app->uniformsBuffer.head - entity.head;
     }
-    
-    UnmapBuffer(app->uniformsBuffer);
 
-    MapBuffer(app->lightMatsBuffer, GL_WRITE_ONLY);
+    UnmapBuffer(app->uniformsBuffer);
+}
+
+void Update(App* app)
+{
+    ProgramHotReload(app);
+
+    Camera& cam = app->camera;
+    HandleInput(app, cam);
+
+    // Play with Patricks transforms ----------------------------------------------------------------------------------
+
+    app->entityList.at(0).transformationMatrix = glm::rotate(app->entityList.at(0).transformationMatrix, glm::radians(1.0f), vec3(0, 1, 0));
+    app->entityList.at(1).transformationMatrix = TransformPositionScale(vec3(app->entityList.at(0).transformationMatrix[2][0] * 3.0f,
+                                                                             app->entityList.at(0).transformationMatrix[2][1] * 3.0f,
+                                                                             app->entityList.at(0).transformationMatrix[2][2] * 3.0f) + 
+                                                                        vec3(0, 1.8, 0),
+                                                                        vec3(0.3f));
+    app->entityList.at(2).transformationMatrix = TransformPositionScale(vec3(0, 1.8, -2.5), vec3(app->entityList.at(0).transformationMatrix[2][0]));
+
+    app->lightList.at(0).position = vec3(app->entityList.at(0).transformationMatrix[2][0] * 5.0f,
+                                         app->entityList.at(0).transformationMatrix[2][1] * 5.0f,
+                                         app->entityList.at(0).transformationMatrix[2][2] * 5.0f) +
+                                    vec3(0, 0.1, 0);
+
+    //-----------------------------------------------------------------------------------------------------------------
+
+    mat4 projection = glm::perspective(glm::radians(cam.fov), cam.aspectRatio, cam.znear, cam.zfar);
+
+    mat4 view = glm::inverse(cam.transformation);
+
+    PushSceneToBuffer(app, projection, view);
+
+    // Light gizmos need transformation matrices to be displayed on the scene -----------------------------------------
+    MapBuffer(app->lightMatricesBuffer, GL_WRITE_ONLY);
 
     for (Light& light : app->lightList)
     {
         mat4 worldViewProjection = projection * view * TransformPositionScale(light.position, vec3(0.2f));
 
-        AlignHead(app->lightMatsBuffer, app->uniformBlockAlignment);
+        AlignHead(app->lightMatricesBuffer, app->uniformBlockAlignment);
 
-        PushMat4(app->lightMatsBuffer, worldViewProjection);
+        PushMat4(app->lightMatricesBuffer, worldViewProjection);
     }
-    UnmapBuffer(app->lightMatsBuffer);
+
+    UnmapBuffer(app->lightMatricesBuffer);
 }
 
 void Render(App* app)
@@ -1053,7 +1063,7 @@ void Render(App* app)
                 }
 
                 glUniform3f(0, currentLight.color.x, currentLight.color.y, currentLight.color.z); //First param is 0 bc it is the only uniform in the shader
-                glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatsBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
+                glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatricesBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
                 
                 glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
                 glBindVertexArray(0);

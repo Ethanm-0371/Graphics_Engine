@@ -268,7 +268,7 @@ struct App
     GLint globalParamsSize;
 
     //Light matrices buffer
-    Buffer lightMatsBuffer;
+    Buffer lightMatricesBuffer;
 
     GLuint albedoAttachmentHandle;
     GLuint normalsAttachmentHandle;
@@ -287,6 +287,8 @@ void GenFrameBuffers(App* app);
 void Init(App* app);
 
 void Gui(App* app);
+
+void PushSceneToBuffer(App* app, mat4 projection, mat4 view);
 
 void Update(App* app);
 
