@@ -352,35 +352,24 @@ void Init(App* app)
 
     // Programs init --------------------------------------------------------------------------------------------------
 
-    #pragma region Dice Program init
-
-    //Load the dice image program
+    // Dice image
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); //This is used to render a plane
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
 
-    #pragma endregion
-
-    #pragma region Direct Mode init
-
+    // Direct Mode
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
 
     app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
 
-    #pragma endregion
-
-    #pragma region Render textures init
-
+    // Render textures
     app->renderTexturesProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "RENDER_TEXTURES"); //This is used to render a mesh
     Program& renderTexturesProgram = app->programs[app->texturedMeshProgramIdx];
 
     app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
 
-    #pragma endregion
-
-    #pragma region Deferred Lighting init
-
+    // Deferred Lighting
     app->deferredLightingProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "DEFERRED_LIGHTING_PASS"); //This is used for the deferred lighting pass
     Program& deferredLightingProgram = app->programs[app->deferredLightingProgramIdx];
 
@@ -388,14 +377,9 @@ void Init(App* app)
     app->deferredLightingPass_normalTexture = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
     app->deferredLightingPass_albedoTexture = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
 
-    #pragma endregion
-
-    #pragma region Lights Visualization Init
-
+    // Lights Visualization
     app->lightVisualizationProgramIdx = LoadProgram(app, "light_visualization_shader.glsl", "LIGHT_VISUALIZATION"); //This is used to render a mesh
     Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
-
-    #pragma endregion
 
     // Camera init ----------------------------------------------------------------------------------------------------
 
