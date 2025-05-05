@@ -365,42 +365,7 @@ void Init(App* app)
 
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); //This is used to render a mesh
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-    //Manually passing the attributes
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
-    //All of this reads the attributes from the mesh, and stores them to send them later
-    GLint d_attributeCount = 0;
-    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTES, &d_attributeCount);
-
-    //This gets the length of the longest attribute name, so that the buffer
-    //of said length can be allocated to then fill with the actual name
-    GLint d_maxAttributeNameLength = 0;
-    glGetProgramiv(texturedMeshProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &d_maxAttributeNameLength);
-
-    for (u64 i = 0; i < d_attributeCount; ++i)
-    {
-        std::string attributeName(d_maxAttributeNameLength, '\0'); //+null terminator
-        GLsizei attributeNameLength;
-        GLint attributeSize;
-        GLenum attributeType;
-
-        glGetActiveAttrib(texturedMeshProgram.handle, i,
-            d_maxAttributeNameLength,
-            &attributeNameLength,
-            &attributeSize,
-            &attributeType,
-            &attributeName[0]);
-
-        attributeName.resize(attributeNameLength);
-
-        u8 attributeLocation = glGetAttribLocation(texturedMeshProgram.handle, attributeName.c_str());
-        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
-
-        texturedMeshProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
-    }
-
-    //I think this has to be done at some point to set a variable so that it doesn't explode.
     app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
 
     #pragma endregion
@@ -409,42 +374,7 @@ void Init(App* app)
 
     app->renderTexturesProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "RENDER_TEXTURES"); //This is used to render a mesh
     Program& renderTexturesProgram = app->programs[app->texturedMeshProgramIdx];
-    //Manually passing the attributes
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
 
-    //All of this reads the attributes from the mesh, and stores them to send them later
-    GLint rt_attributeCount = 0;
-    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTES, &rt_attributeCount);
-
-    //This gets the length of the longest attribute name, so that the buffer
-    //of said length can be allocated to then fill with the actual name
-    GLint rt_maxAttributeNameLength = 0;
-    glGetProgramiv(renderTexturesProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &rt_maxAttributeNameLength);
-
-    for (u64 i = 0; i < rt_attributeCount; ++i)
-    {
-        std::string attributeName(rt_maxAttributeNameLength, '\0'); //+null terminator
-        GLsizei attributeNameLength;
-        GLint attributeSize;
-        GLenum attributeType;
-
-        glGetActiveAttrib(renderTexturesProgram.handle, i,
-            rt_maxAttributeNameLength,
-            &attributeNameLength,
-            &attributeSize,
-            &attributeType,
-            &attributeName[0]);
-
-        attributeName.resize(attributeNameLength);
-
-        u8 attributeLocation = glGetAttribLocation(renderTexturesProgram.handle, attributeName.c_str());
-        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
-
-        renderTexturesProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
-    }
-
-    //I think this has to be done at some point to set a variable so that it doesn't explode.
     app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
 
     #pragma endregion
@@ -454,9 +384,6 @@ void Init(App* app)
     app->deferredLightingProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "DEFERRED_LIGHTING_PASS"); //This is used for the deferred lighting pass
     Program& deferredLightingProgram = app->programs[app->deferredLightingProgramIdx];
 
-    //I think this has to be done at some point to set a variable so that it doesn't explode.
-    //No, it is not that. I think that this reads the position of the texture uniform to store its 
-    //index so that it can be used later to pass the desired texture to the shader in said position.
     app->deferredLightingPass_posTexture = glGetUniformLocation(deferredLightingProgram.handle, "positionTexture");
     app->deferredLightingPass_normalTexture = glGetUniformLocation(deferredLightingProgram.handle, "normalTexture");
     app->deferredLightingPass_albedoTexture = glGetUniformLocation(deferredLightingProgram.handle, "albedoTexture");
@@ -467,40 +394,6 @@ void Init(App* app)
 
     app->lightVisualizationProgramIdx = LoadProgram(app, "light_visualization_shader.glsl", "LIGHT_VISUALIZATION"); //This is used to render a mesh
     Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
-    //Manually passing the attributes
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({0,3}); //position
-    //texturedMeshProgram.vertexInputLayout.attributes.push_back({2,2}); //texcoord
-
-    //All of this reads the attributes from the mesh, and stores them to send them later
-    GLint lv_attributeCount = 0;
-    glGetProgramiv(lightVisProgram.handle, GL_ACTIVE_ATTRIBUTES, &lv_attributeCount);
-
-    //This gets the length of the longest attribute name, so that the buffer
-    //of said length can be allocated to then fill with the actual name
-    GLint lv_maxAttributeNameLength = 0;
-    glGetProgramiv(lightVisProgram.handle, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &lv_maxAttributeNameLength);
-
-    for (u64 i = 0; i < lv_attributeCount; ++i)
-    {
-        std::string attributeName(lv_maxAttributeNameLength, '\0'); //+null terminator
-        GLsizei attributeNameLength;
-        GLint attributeSize;
-        GLenum attributeType;
-
-        glGetActiveAttrib(lightVisProgram.handle, i,
-            lv_maxAttributeNameLength,
-            &attributeNameLength,
-            &attributeSize,
-            &attributeType,
-            &attributeName[0]);
-
-        attributeName.resize(attributeNameLength);
-
-        u8 attributeLocation = glGetAttribLocation(lightVisProgram.handle, attributeName.c_str());
-        u8 componentCount = (u8)(attributeType == GL_FLOAT_VEC3 ? 3 : (attributeType == GL_FLOAT_VEC2 ? 2 : 1));
-
-        lightVisProgram.vertexInputLayout.attributes.push_back({ attributeLocation, componentCount });
-    }
 
     #pragma endregion
 
