@@ -19,267 +19,267 @@ typedef glm::mat4  mat4;
 
 struct Image
 {
-    void* pixels;
-    ivec2 size;
-    i32   nchannels;
-    i32   stride;
+	void* pixels;
+	ivec2 size;
+	i32   nchannels;
+	i32   stride;
 };
 
 struct Texture
 {
-    GLuint      handle;
-    std::string filepath;
+	GLuint      handle;
+	std::string filepath;
 };
 
 //VBO, EBO, shader, VAO stuff
 struct VertexBufferAttribute
 {
-    u8 location;
-    u8 componentCount;
-    u8 offset;
+	u8 location;
+	u8 componentCount;
+	u8 offset;
 };
 
 struct VertexBufferLayout
 {
-    std::vector<VertexBufferAttribute> attributes;
-    u8 stride;
+	std::vector<VertexBufferAttribute> attributes;
+	u8 stride;
 };
 
 struct VertexShaderAttribute
 {
-    u8 location;
-    u8 componentCount;
+	u8 location;
+	u8 componentCount;
 };
 
 struct VertexShaderLayout
 {
-    std::vector<VertexShaderAttribute> attributes;
+	std::vector<VertexShaderAttribute> attributes;
 };
 
 struct Vao
 {
-    GLuint handle;
-    GLuint programHandle;
+	GLuint handle;
+	GLuint programHandle;
 };
 
 //3D Model
 struct Model
 {
-    u32 meshIdx;
-    std::vector<u32> materialIdx;
+	u32 meshIdx;
+	std::vector<u32> materialIdx;
 };
 
 struct Submesh
 {
-    VertexBufferLayout vertexBufferLayout;
-    std::vector<float> vertices;
-    std::vector<u32> indices;
-    u32 vertexOffset;
-    u32 indexOffset;
+	VertexBufferLayout vertexBufferLayout;
+	std::vector<float> vertices;
+	std::vector<u32> indices;
+	u32 vertexOffset;
+	u32 indexOffset;
 
-    std::vector<Vao> vaos;
+	std::vector<Vao> vaos;
 };
 
 struct Mesh
 {
-    std::vector<Submesh> submeshes;
-    GLuint vertexBufferHandle;
-    GLuint indexBufferHandle;
+	std::vector<Submesh> submeshes;
+	GLuint vertexBufferHandle;
+	GLuint indexBufferHandle;
 };
 
 struct Material
 {
-    std::string name;
-    vec3 albedo;
-    vec3 emissive;
-    f32 smoothness;
-    u32 albedoTextureIdx;
-    u32 emissiveTextureIdx;
-    u32 specularTextureIdx;
-    u32 normalsTextureIdx;
-    u32 bumpTextureIdx;
+	std::string name;
+	vec3 albedo;
+	vec3 emissive;
+	f32 smoothness;
+	u32 albedoTextureIdx;
+	u32 emissiveTextureIdx;
+	u32 specularTextureIdx;
+	u32 normalsTextureIdx;
+	u32 bumpTextureIdx;
 };
 
 struct Program
 {
-    GLuint             handle;
-    std::string        filepath;
-    std::string        programName;
-    u64                lastWriteTimestamp;
-    VertexShaderLayout vertexInputLayout;
+	GLuint             handle;
+	std::string        filepath;
+	std::string        programName;
+	u64                lastWriteTimestamp;
+	VertexShaderLayout vertexInputLayout;
 };
 
 #pragma endregion
 
 enum Mode
 {
-    Mode_TexturedQuad,
-    Mode_Meshes,
-    Mode_FrameBuffer,
-    Mode_DeferredRenderTextures,
-    Mode_Count
+	Mode_TexturedQuad,
+	Mode_Meshes,
+	Mode_FrameBuffer,
+	Mode_DeferredRenderTextures,
+	Mode_Count
 };
 
 enum RenderTextureMode
 {
-    RendTexMode_Albedo,
-    RendTexMode_Normals,
-    RendTexMode_Position,
-    RendTexMode_Depth,
-    RendTexMode_Deferred,
-    RendTexMode_Count
+	RendTexMode_Albedo,
+	RendTexMode_Normals,
+	RendTexMode_Position,
+	RendTexMode_Depth,
+	RendTexMode_Deferred,
+	RendTexMode_Count
 };
 
 //Buffer
 struct Buffer
 {
-    GLuint handle;
-    GLenum type;
-    u32 size;
-    u32 head;
-    void* data; //mapped data
+	GLuint handle;
+	GLenum type;
+	u32 size;
+	u32 head;
+	void* data; //mapped data
 };
 
 //Camera
 struct Camera
 {
-    mat4 transformation;
+	mat4 transformation;
 
-    float aspectRatio;
-    float znear;
-    float zfar;
-    float fov;
+	float aspectRatio;
+	float znear;
+	float zfar;
+	float fov;
 };
 
 //Entity
 struct Entity
 {
-    //vec3 position;
-    //vec3 scale;
-    mat4 transformationMatrix;
-    u32 model;
+	//vec3 position;
+	//vec3 scale;
+	mat4 transformationMatrix;
+	u32 model;
 
-    u32 head;
-    u32 size;
+	u32 head;
+	u32 size;
 };
 
 //Lights
 enum LightType
 {
-    LightType_Directional,
-    LightType_Point,
+	LightType_Directional,
+	LightType_Point,
 };
 
 struct Light
 {
-    unsigned int type;
-    unsigned int strength;
-    vec3 color;
-    vec3 direction;
-    vec3 position;
+	unsigned int type;
+	unsigned int strength;
+	vec3 color;
+	vec3 direction;
+	vec3 position;
 };
 
 //App
 struct OpenGLInfo
 {
-    char* version;
-    char* renderer;
-    char* vendor;
-    char* versionGLSL;
-    int numExtensions;
-    char** extensions;
+	char* version;
+	char* renderer;
+	char* vendor;
+	char* versionGLSL;
+	int numExtensions;
+	char** extensions;
 };
 
 struct App
 {
-    // Loop
-    f32  deltaTime;
-    bool isRunning;
+	// Loop
+	f32  deltaTime;
+	bool isRunning;
 
-    // Input
-    Input input;
+	// Input
+	Input input;
 
-    // Graphics
-    char gpuName[64];
-    char openGlVersion[64];
-    OpenGLInfo GLInfo;
+	// Graphics
+	char gpuName[64];
+	char openGlVersion[64];
+	OpenGLInfo GLInfo;
 
-    ivec2 displaySize;
+	ivec2 displaySize;
 
-    std::vector<Texture> textures;
-    std::vector<Material> materials;
-    std::vector<Mesh> meshes;
-    std::vector<Model> models;
-    std::vector<Program> programs;
+	std::vector<Texture> textures;
+	std::vector<Material> materials;
+	std::vector<Mesh> meshes;
+	std::vector<Model> models;
+	std::vector<Program> programs;
 
-    // program indices
-    u32 texturedGeometryProgramIdx;
-    u32 texturedMeshProgramIdx;
-    u32 renderTexturesProgramIdx;
-    u32 deferredLightingProgramIdx;
-    u32 lightVisualizationProgramIdx;
-    
-    // texture indices
-    u32 diceTexIdx;
-    u32 whiteTexIdx;
-    u32 blackTexIdx;
-    u32 normalTexIdx;
-    u32 magentaTexIdx;
+	// program indices
+	u32 texturedGeometryProgramIdx;
+	u32 texturedMeshProgramIdx;
+	u32 renderTexturesProgramIdx;
+	u32 deferredLightingProgramIdx;
+	u32 lightVisualizationProgramIdx;
 
-    //model indices
-    u32 patrickModel;
-    u32 planeModel;
+	// texture indices
+	u32 diceTexIdx;
+	u32 whiteTexIdx;
+	u32 blackTexIdx;
+	u32 normalTexIdx;
+	u32 magentaTexIdx;
 
-    //Scene entities
-    std::vector<Entity> entityList;
-    
-    //Scene lights
-    std::vector<Light> lightList;
+	//model indices
+	u32 patrickModel;
+	u32 planeModel;
 
-    // Mode
-    Mode mode;
-    RenderTextureMode renderTexMode;
-    Camera camera;
+	//Scene entities
+	std::vector<Entity> entityList;
 
-    // Location of the texture uniform in the textured quad shader
-    GLuint programUniformTexture;
+	//Scene lights
+	std::vector<Light> lightList;
 
-    // Location of the texture uniform in the mesh shader???
-    GLuint texturedMeshProgram_uTexture;
-    
-    // Location of the texture uniform in the render texture shader???
-    GLuint renderTexturesProgram_uTexture;
+	// Mode
+	Mode mode;
+	RenderTextureMode renderTexMode;
+	Camera camera;
 
-    // Location of the texture uniforms in the lighting pass shader???
-    GLuint deferredLightingPass_posTexture;
-    GLuint deferredLightingPass_normalTexture;
-    GLuint deferredLightingPass_albedoTexture;
+	// Location of the texture uniform in the textured quad shader
+	GLuint programUniformTexture;
 
-    // VAOs
-    GLuint targetQuad_vao;
-    GLuint cube_vao;
-    GLuint sphere_vao;
+	// Location of the texture uniform in the mesh shader???
+	GLuint texturedMeshProgram_uTexture;
 
-    //Uniforms buffer
-    Buffer uniformsBuffer;
-    GLint maxUniformBufferSize;
-    GLint uniformBlockAlignment;
+	// Location of the texture uniform in the render texture shader???
+	GLuint renderTexturesProgram_uTexture;
 
-    GLint globalParamsSize;
+	// Location of the texture uniforms in the lighting pass shader???
+	GLuint deferredLightingPass_posTexture;
+	GLuint deferredLightingPass_normalTexture;
+	GLuint deferredLightingPass_albedoTexture;
 
-    //Light matrices buffer
-    Buffer lightMatricesBuffer;
+	// VAOs
+	GLuint targetQuad_vao;
+	GLuint cube_vao;
+	GLuint sphere_vao;
 
-    GLuint albedoAttachmentHandle;
-    GLuint normalsAttachmentHandle;
-    GLuint positionAttachmentHandle;
-    GLuint depthAttachmentHandle;
-    GLuint deferredAttachmentHandle;
+	//Uniforms buffer
+	Buffer uniformsBuffer;
+	GLint maxUniformBufferSize;
+	GLint uniformBlockAlignment;
 
-    GLuint frameBufferAttachmentHandle;
+	GLint globalParamsSize;
 
-    GLuint directFrameBufferHandle;
-    GLuint deferredFrameBufferHandle;
+	//Light matrices buffer
+	Buffer lightMatricesBuffer;
+
+	GLuint albedoAttachmentHandle;
+	GLuint normalsAttachmentHandle;
+	GLuint positionAttachmentHandle;
+	GLuint depthAttachmentHandle;
+	GLuint deferredAttachmentHandle;
+
+	GLuint frameBufferAttachmentHandle;
+
+	GLuint directFrameBufferHandle;
+	GLuint deferredFrameBufferHandle;
 };
 
 void GenFrameBuffers(App* app);
