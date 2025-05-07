@@ -719,362 +719,216 @@ void Update(App* app)
     UnmapBuffer(app->lightMatricesBuffer);
 }
 
+void RenderToQuad(App* app, GLuint textureHandle)
+{
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+    Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+    glUseProgram(programTexturedGeometry.handle);
+    glBindVertexArray(app->targetQuad_vao);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    glUniform1i(app->programUniformTexture, 0);
+    glActiveTexture(GL_TEXTURE0);
+
+    glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+void RenderMeshes(App* app, Program& renderProgram)
+{
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glEnable(GL_DEPTH_TEST);
+    glUseProgram(renderProgram.handle);
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+    for (Entity& entity : app->entityList)
+    {
+        Model& model = app->models[entity.model];
+        Mesh& mesh = app->meshes[model.meshIdx];
+
+        glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
+
+        for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+        {
+            GLuint vao = FindVAO(mesh, i, renderProgram);
+            glBindVertexArray(vao);
+
+            u32 submeshMaterialIdx = model.materialIdx[i];
+            Material& submeshMaterial = app->materials[submeshMaterialIdx];
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+            glUniform1i(app->texturedMeshProgram_uTexture, 0);
+
+            Submesh& submesh = mesh.submeshes[i];
+            glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+        }
+    }
+
+    glDisable(GL_DEPTH_TEST);
+    glBindVertexArray(0);
+    glUseProgram(0);
+}
+
+void DeferredLightingPass(App* app)
+{
+    glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+    Program& shadingPassProgram = app->programs[app->deferredLightingProgramIdx];
+    glUseProgram(shadingPassProgram.handle);
+    glBindVertexArray(app->targetQuad_vao);
+
+    //Bind buffer for global params
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+    glUniform1i(app->deferredLightingPass_posTexture, 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, app->positionAttachmentHandle);
+
+    glUniform1i(app->deferredLightingPass_normalTexture, 1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, app->normalsAttachmentHandle);
+
+    glUniform1i(app->deferredLightingPass_albedoTexture, 2);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, app->albedoAttachmentHandle);
+
+
+    glDrawBuffer(GL_COLOR_ATTACHMENT3); //Deferred
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void RenderLightGizmos(App* app)
+{
+    glEnable(GL_DEPTH_TEST);
+
+    //Then we copy the G-Buffer depth to the default depth buffer to render the cubes as if their depth was the scene's.
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, app->deferredFrameBufferHandle);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+    glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y,
+        0, 0, app->displaySize.x, app->displaySize.y,
+        GL_DEPTH_BUFFER_BIT, GL_NEAREST
+    );
+
+    //We "bind" the default frame buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    //And then we proceed as usual
+    glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+    Program& lightsVisProgram = app->programs[app->lightVisualizationProgramIdx];
+    glUseProgram(lightsVisProgram.handle);
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+    for (u32 i = 0; i < app->lightList.size(); ++i)
+    {
+        Light currentLight = app->lightList[i];
+
+        //Binding and unbinding for each entity is not the most efficient (not batching), but will do
+        GLsizei indexAmount;
+        if (currentLight.type == LightType_Directional)
+        {
+            glBindVertexArray(app->cube_vao);
+            indexAmount = 36;
+        }
+        else if (currentLight.type == LightType_Point)
+        {
+            glBindVertexArray(app->sphere_vao);
+            indexAmount = 144;
+        }
+
+        glUniform3f(0, currentLight.color.x, currentLight.color.y, currentLight.color.z); //First param is 0 bc it is the only uniform in the shader
+        glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatricesBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
+
+        glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
+        glBindVertexArray(0);
+    }
+
+    glDisable(GL_DEPTH_TEST);
+    glUseProgram(0);
+}
+
 void Render(App* app)
 {
     switch (app->mode)
     {
         case Mode_TexturedQuad:
             {
-                // TODO: Draw your textured quad here!
-                // - clear the framebuffer
-                // - set the viewport
-                // - set the blending state
-                // - bind the texture into unit 0
-                // - bind the program 
-                //   (...and make its texture sample from unit 0)
-                // - bind the vao
-                // - glDrawElements() !!!
-                glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-                Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
-                glUseProgram(programTexturedGeometry.handle);
-                glBindVertexArray(app->targetQuad_vao);
-
-                glEnable(GL_BLEND);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-                glUniform1i(app->programUniformTexture, 0);
-                glActiveTexture(GL_TEXTURE0);
-                GLuint textureHandle = app->textures[app->diceTexIdx].handle;
-                glBindTexture(GL_TEXTURE_2D, textureHandle);
-
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-                glBindVertexArray(0);
-                glUseProgram(0);
+                RenderToQuad(app, app->textures[app->diceTexIdx].handle);
             }
             break;
         case Mode_Meshes:
             {
-                glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-                glEnable(GL_DEPTH_TEST);
-
-                glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-
-                Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-                glUseProgram(texturedMeshProgram.handle);
-
-                
-                //Bind buffer for global params
-                glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
-
-                for (Entity& entity : app->entityList)
-                {
-                    //Model& model = app->models[app->patrickModel];
-                    Model& model = app->models[entity.model];
-                    Mesh& mesh = app->meshes[model.meshIdx];
-
-                    //Bind buffer per entity
-                    glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
-
-                    for (u32 i = 0; i < mesh.submeshes.size(); ++i)
-                    {
-                        GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
-                        glBindVertexArray(vao);
-
-                        u32 submeshMaterialIdx = model.materialIdx[i];
-                        Material& submeshMaterial = app->materials[submeshMaterialIdx];
-
-                        glActiveTexture(GL_TEXTURE0);
-                        glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-                        glUniform1i(app->texturedMeshProgram_uTexture, 0);
-
-                        Submesh& submesh = mesh.submeshes[i];
-                        glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
-                    }
-                }
-
-                glDisable(GL_DEPTH_TEST);
-
-                glBindVertexArray(0);
-                glUseProgram(0);
+                RenderMeshes(app, app->programs[app->texturedMeshProgramIdx]);
             }
             break;
         case Mode_FrameBuffer:
-        {
-            //Render on this frame buffer render targets
-            glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
-
-            //Select on which render targets to draw
-            GLuint drawBuffers[] = { app->frameBufferAttachmentHandle };
-            glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
-
-            //Clear color and depth (only if required)
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            //Render code loops
-            // - Bind programs
-            // - Bind buffers
-            // - Set states
-            // - Draw calls
-
-            glEnable(GL_DEPTH_TEST);
-            Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-            glUseProgram(texturedMeshProgram.handle);
-
-
-            //Bind buffer for global params
-            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
-
-            for (Entity& entity : app->entityList)
             {
-                //Model& model = app->models[app->patrickModel];
-                Model& model = app->models[entity.model];
-                Mesh& mesh = app->meshes[model.meshIdx];
+                //Render on this frame buffer render targets
+                glBindFramebuffer(GL_FRAMEBUFFER, app->directFrameBufferHandle);
 
-                //Bind buffer per entity
-                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
+                //Select on which render targets to draw
+                GLuint drawBuffers[] = { app->frameBufferAttachmentHandle };
+                glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
 
-                for (u32 i = 0; i < mesh.submeshes.size(); ++i)
-                {
-                    GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
-                    glBindVertexArray(vao);
+                RenderMeshes(app, app->programs[app->texturedMeshProgramIdx]);
 
-                    u32 submeshMaterialIdx = model.materialIdx[i];
-                    Material& submeshMaterial = app->materials[submeshMaterialIdx];
+                glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                glDisable(GL_DEPTH_TEST);
 
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-                    glUniform1i(app->texturedMeshProgram_uTexture, 0);
-
-                    Submesh& submesh = mesh.submeshes[i];
-                    glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
-                }
+                RenderToQuad(app, app->frameBufferAttachmentHandle);
             }
-
-            glBindVertexArray(0);
-            glUseProgram(0);
-
-            //glBindFramebuffer(GL_FRAMEBUFFER, app->frameBufferHandle);
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glDisable(GL_DEPTH_TEST);
-
-            //End of code loops----------------
-
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-            Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
-            glUseProgram(programTexturedGeometry.handle);
-            glBindVertexArray(app->targetQuad_vao);
-
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-            glUniform1i(app->programUniformTexture, 0);
-            glActiveTexture(GL_TEXTURE0);
-            GLuint textureHandle = app->frameBufferAttachmentHandle;
-            glBindTexture(GL_TEXTURE_2D, textureHandle);
-
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-            glBindVertexArray(0);
-            glUseProgram(0);
-        }
-        break;
+            break;
         case Mode_DeferredRenderTextures:
-        {
-            //Render on this frame buffer render targets
-            glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
-
-            //Select on which render targets to draw
-            GLuint drawBuffers[] = { GL_COLOR_ATTACHMENT0,      //Albedo
-                                     GL_COLOR_ATTACHMENT1,      //Normals
-                                     GL_COLOR_ATTACHMENT2 };    //Position
-            glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
-
-            //Clear color and depth (only if required)
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            //Render code loops
-            // - Bind programs
-            // - Bind buffers
-            // - Set states
-            // - Draw calls
-
-            glEnable(GL_DEPTH_TEST);
-            Program& renderTexturesProgram = app->programs[app->renderTexturesProgramIdx];
-            glUseProgram(renderTexturesProgram.handle);
-
-
-            //Bind buffer for global params
-            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
-
-            for (Entity& entity : app->entityList)
             {
-                Model& model = app->models[entity.model];
-                Mesh& mesh = app->meshes[model.meshIdx];
+                //Render on this frame buffer render targets
+                glBindFramebuffer(GL_FRAMEBUFFER, app->deferredFrameBufferHandle);
 
-                //Bind buffer per entity
-                glBindBufferRange(GL_UNIFORM_BUFFER, 1, app->uniformsBuffer.handle, entity.head, entity.size);
+                //Select on which render targets to draw
+                GLuint drawBuffers[] = { GL_COLOR_ATTACHMENT0,      //Albedo
+                                         GL_COLOR_ATTACHMENT1,      //Normals
+                                         GL_COLOR_ATTACHMENT2 };    //Position
+                glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
 
-                for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                RenderMeshes(app, app->programs[app->renderTexturesProgramIdx]);
+
+                DeferredLightingPass(app);
+
+                GLuint textureHandle = 0;
+                switch (app->renderTexMode)
                 {
-                    GLuint vao = FindVAO(mesh, i, app->programs[app->texturedMeshProgramIdx]);
-                    glBindVertexArray(vao);
-
-                    u32 submeshMaterialIdx = model.materialIdx[i];
-                    Material& submeshMaterial = app->materials[submeshMaterialIdx];
-
-                    glActiveTexture(GL_TEXTURE0);
-                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-                    glUniform1i(app->renderTexturesProgram_uTexture, 0);
-
-                    Submesh& submesh = mesh.submeshes[i];
-                    glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
-                }
-            }
-
-            glBindVertexArray(0);
-            glUseProgram(0);
-
-            //End of code loops----------------
-            
-            //Start of shading pass--------------------------------------
-
-            glDisable(GL_DEPTH_TEST);
-
-            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-            Program& shadingPassProgram = app->programs[app->deferredLightingProgramIdx];
-            glUseProgram(shadingPassProgram.handle);
-            glBindVertexArray(app->targetQuad_vao);
-
-            //Bind buffer for global params
-            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
-
-            glUniform1i(app->deferredLightingPass_posTexture, 0);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, app->positionAttachmentHandle);
-
-            glUniform1i(app->deferredLightingPass_normalTexture, 1);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, app->normalsAttachmentHandle);
-
-            glUniform1i(app->deferredLightingPass_albedoTexture, 2);
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, app->albedoAttachmentHandle);
-
-            
-            glDrawBuffer(GL_COLOR_ATTACHMENT3); //Deferred
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-            glBindVertexArray(0);
-            glUseProgram(0);
-
-            glEnable(GL_DEPTH_TEST);
-
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            //Shading pass end----------------------------------------------
-
-            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-            Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
-            glUseProgram(programTexturedGeometry.handle);
-            glBindVertexArray(app->targetQuad_vao);
-
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-            glUniform1i(app->programUniformTexture, 0);
-            glActiveTexture(GL_TEXTURE0);
-
-            GLuint textureHandle = 0;
-            switch (app->renderTexMode)
-            {
-                case RendTexMode_Albedo:   textureHandle = app->albedoAttachmentHandle; break;
-                case RendTexMode_Normals:  textureHandle = app->normalsAttachmentHandle; break;
-                case RendTexMode_Position: textureHandle = app->positionAttachmentHandle; break;
-                case RendTexMode_Depth:    textureHandle = app->depthAttachmentHandle; break;
-                case RendTexMode_Deferred: textureHandle = app->deferredAttachmentHandle; break;
-                default: break;
-            }
-
-            glBindTexture(GL_TEXTURE_2D, textureHandle);
-
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-            glBindVertexArray(0);
-            glUseProgram(0);
-
-            //Shading visualization start--------------------------------------------------------------
-
-            //We first clear the depth buffer with the rendertexture quad
-
-            //Then we copy the G-Buffer depth to the default depth buffer to render the cubes as if their depth was the scene's.
-            glBindFramebuffer(GL_READ_FRAMEBUFFER, app->deferredFrameBufferHandle);
-            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-            glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y,
-                              0, 0, app->displaySize.x, app->displaySize.y,
-                              GL_DEPTH_BUFFER_BIT, GL_NEAREST
-            );
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-            //And then we proceed as usual
-            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-            Program& lightsVisProgram = app->programs[app->lightVisualizationProgramIdx];
-            glUseProgram(lightsVisProgram.handle);
-
-            glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
-
-            //This enables transpareny?
-            //glEnable(GL_BLEND);
-            //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-            for (u32 i = 0; i < app->lightList.size(); ++i)
-            {
-                Light currentLight = app->lightList[i];
-
-                //Binding and unbinding for each entity is not the most efficient (not batching), but will do
-                GLsizei indexAmount;
-                if (currentLight.type == LightType_Directional)
-                {
-                    glBindVertexArray(app->cube_vao); 
-                    indexAmount = 36;
-                }
-                else
-                {
-                    glBindVertexArray(app->sphere_vao); 
-                    indexAmount = 144;
+                    case RendTexMode_Albedo:   textureHandle = app->albedoAttachmentHandle; break;
+                    case RendTexMode_Normals:  textureHandle = app->normalsAttachmentHandle; break;
+                    case RendTexMode_Position: textureHandle = app->positionAttachmentHandle; break;
+                    case RendTexMode_Depth:    textureHandle = app->depthAttachmentHandle; break;
+                    case RendTexMode_Deferred: textureHandle = app->deferredAttachmentHandle; break;
+                    default: break;
                 }
 
-                glUniform3f(0, currentLight.color.x, currentLight.color.y, currentLight.color.z); //First param is 0 bc it is the only uniform in the shader
-                glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->lightMatricesBuffer.handle, i * app->uniformBlockAlignment, app->uniformBlockAlignment);
-                
-                glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
-                glBindVertexArray(0);
+                RenderToQuad(app, textureHandle);
+
+                RenderLightGizmos(app);
             }
-
-            glUseProgram(0);
-
-            //Shading visualization end----------------------------------------------------------------
-        }
             break;
 
-        default:;
+        default: break;
     }
 }
