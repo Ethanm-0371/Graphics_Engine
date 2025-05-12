@@ -31,6 +31,12 @@ struct Texture
 	std::string filepath;
 };
 
+struct Cubemap
+{
+	GLuint      handle;
+	std::vector<std::string> filepaths;
+};
+
 //VBO, EBO, shader, VAO stuff
 struct VertexBufferAttribute
 {
@@ -207,6 +213,7 @@ struct App
 	ivec2 displaySize;
 
 	std::vector<Texture> textures;
+	std::vector<Cubemap> cubemaps;
 	std::vector<Material> materials;
 	std::vector<Mesh> meshes;
 	std::vector<Model> models;
@@ -218,6 +225,7 @@ struct App
 	u32 renderTexturesProgramIdx;
 	u32 deferredLightingProgramIdx;
 	u32 lightVisualizationProgramIdx;
+	u32 skyboxProgramIdx;
 
 	// texture indices
 	u32 diceTexIdx;
@@ -225,6 +233,9 @@ struct App
 	u32 blackTexIdx;
 	u32 normalTexIdx;
 	u32 magentaTexIdx;
+
+	// cubemap indices
+	u32 skyboxTexIdx;
 
 	//model indices
 	u32 patrickModel;
@@ -255,10 +266,14 @@ struct App
 	GLuint deferredLightingPass_normalTexture;
 	GLuint deferredLightingPass_albedoTexture;
 
+	// Location of the texture uniforms in the lighting pass shader???
+	GLuint skybox_uTexture;
+
 	// VAOs
 	GLuint targetQuad_vao;
 	GLuint cube_vao;
 	GLuint sphere_vao;
+	GLuint skybox_vao;
 
 	//Uniforms buffer
 	Buffer uniformsBuffer;

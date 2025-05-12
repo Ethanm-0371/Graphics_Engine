@@ -205,6 +205,56 @@ void InitPrimitiveGeometry(GLuint& geometryVao, const VertexV3V2 vertices[], GLs
 	glBindVertexArray(0);
 }
 
+u32 LoadCubemapTexture(App* app, std::vector<std::string> cubemapTexturePaths)
+{
+	for (Cubemap cubemap : app->cubemaps)
+	{
+		bool texturesMatch = true;
+
+		for (int i = 0; i < cubemap.filepaths.size(); i++)
+		{
+			if (cubemap.filepaths[i] != cubemapTexturePaths[i])
+			{
+				texturesMatch = false;
+			}
+		}
+
+		if (texturesMatch)
+		{
+			return cubemap.handle;
+		}
+	}
+
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < cubemapTexturePaths.size(); i++)
+	{
+		unsigned char* data = stbi_load(cubemapTexturePaths[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+			);
+			stbi_image_free(data);
+		}
+		else
+		{
+			ELOG("Cubemap tex failed to load at path: %s", cubemapTexturePaths[i].c_str());
+			stbi_image_free(data);
+		}
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return textureID;
+}
+
 void Init(App* app)
 {
 	if (GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3))
@@ -250,6 +300,17 @@ void Init(App* app)
 		0,6,7, 0,7,1, //Left
 		0,2,6, 2,4,6, //Top
 		1,7,3, 3,7,5  //Bottom
+	};
+	const u16 skybox_indices[] =
+	{
+		//Tri direction is counter clockwise
+
+		2,1,0, 2,3,1, //Front
+		5,3,2, 4,5,2, //Right
+		7,5,4, 6,7,4, //Back
+		7,6,0, 1,7,0, //Left
+		6,2,0, 6,4,2, //Top
+		3,7,1, 5,7,3  //Bottom
 	};
 
 	const VertexV3V2 sphere_vertices[] =
@@ -348,6 +409,7 @@ void Init(App* app)
 	InitPrimitiveGeometry(app->targetQuad_vao, targetQuad_vertices, sizeof(targetQuad_vertices), targetQuad_indices, sizeof(targetQuad_indices));
 	InitPrimitiveGeometry(app->cube_vao, cube_vertices, sizeof(cube_vertices), cube_indices, sizeof(cube_indices));
 	InitPrimitiveGeometry(app->sphere_vao, sphere_vertices, sizeof(sphere_vertices), sphere_indices, sizeof(sphere_indices));
+	InitPrimitiveGeometry(app->skybox_vao, cube_vertices, sizeof(cube_vertices), skybox_indices, sizeof(skybox_indices));
 
 	// Programs init --------------------------------------------------------------------------------------------------
 
@@ -380,6 +442,11 @@ void Init(App* app)
 	app->lightVisualizationProgramIdx = LoadProgram(app, "light_visualization_shader.glsl", "LIGHT_VISUALIZATION"); //This is used to render a mesh
 	Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
 
+	//Skybox
+	app->skyboxProgramIdx = LoadProgram(app, "skybox_shader.glsl", "SKYBOX"); //This is used to render a mesh
+	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
+	app->skybox_uTexture = glGetUniformLocation(skyboxProgram.handle, "uTexture");
+
 	// Camera init ----------------------------------------------------------------------------------------------------
 
 	app->camera = Camera{ mat4(1.0),
@@ -399,6 +466,9 @@ void Init(App* app)
 	app->blackTexIdx = LoadTexture2D(app, "color_black.png");
 	app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
 	app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
+
+	std::vector<std::string> texturePaths = { "Skybox/posx.jpg","Skybox/negx.jpg","Skybox/posy.jpg","Skybox/negy.jpg","Skybox/posz.jpg","Skybox/negz.jpg" };
+	app->skyboxTexIdx = LoadCubemapTexture(app, texturePaths);
 
 	// Models init ----------------------------------------------------------------------------------------------------
 
@@ -866,8 +936,38 @@ void RenderLightGizmos(App* app)
 	glUseProgram(0);
 }
 
+void RenderSkybox(App* app)
+{
+	//We "bind" the default frame buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//And then we proceed as usual
+	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
+	glUseProgram(skyboxProgram.handle);
+
+	glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
+
+	glBindVertexArray(app->skybox_vao);
+	GLsizei indexAmount = 36;
+
+	glUniform1i(app->skybox_uTexture, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+	//glBindTexture(GL_TEXTURE_CUBE_MAP, app->cubemaps[app->skyboxTexIdx].handle);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, app->skyboxTexIdx);
+
+	glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
+	glBindVertexArray(0);
+	glUseProgram(0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Render(App* app)
 {
+	RenderSkybox(app);
+
 	switch (app->mode)
 	{
 	case Mode_TexturedQuad:
