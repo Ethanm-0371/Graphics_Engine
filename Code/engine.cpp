@@ -903,57 +903,8 @@ void DeferredLightingPass(App* app)
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void RenderSkybox(App* app)
-{
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
-	glUseProgram(skyboxProgram.handle);
-
-	glUniformMatrix4fv(app->skybox_uMatrix, 1, GL_FALSE, glm::value_ptr(app->skyboxViewProjection));
-
-	glBindVertexArray(app->skybox_vao);
-	GLsizei indexAmount = 36;
-
-	glUniform1i(app->skybox_uTexture, 0);
-	glActiveTexture(GL_TEXTURE0);
-
-	switch (app->currentSkybox)
-	{
-		case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
-		case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
-		case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
-		default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
-	}
-
-	glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
-
-	glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-	glBindVertexArray(0);
-	glUseProgram(0);
-}
-
 void RenderLightGizmos(App* app)
 {
-	glEnable(GL_DEPTH_TEST);
-
-	//Then we copy the G-Buffer depth to the default depth buffer to render the cubes as if their depth was the scene's.
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, app->deferredFrameBufferHandle);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-	glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y,
-		0, 0, app->displaySize.x, app->displaySize.y,
-		GL_DEPTH_BUFFER_BIT, GL_NEAREST
-	);
-
-	//We "bind" the default frame buffer
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	//And then we proceed as usual
-	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
 	Program& lightsVisProgram = app->programs[app->lightVisualizationProgramIdx];
 	glUseProgram(lightsVisProgram.handle);
 
@@ -983,10 +934,61 @@ void RenderLightGizmos(App* app)
 		glBindVertexArray(0);
 	}
 
+	glUseProgram(0);
+}
+
+void RenderSkybox(App* app)
+{
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
+	glUseProgram(skyboxProgram.handle);
+
+	glUniformMatrix4fv(app->skybox_uMatrix, 1, GL_FALSE, glm::value_ptr(app->skyboxViewProjection));
+
+	glBindVertexArray(app->skybox_vao);
+	GLsizei indexAmount = 36;
+
+	glUniform1i(app->skybox_uTexture, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+	switch (app->currentSkybox)
+	{
+		case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
+		case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
+		case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
+		default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
+	}
+
+	glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
+
+	glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	glBindVertexArray(0);
+	glUseProgram(0);
+}
+
+void PostRenderPass(App* app)
+{
+	glEnable(GL_DEPTH_TEST);
+
+	//Then we copy the G-Buffer depth to the default depth buffer to render the cubes as if their depth was the scene's.
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, app->deferredFrameBufferHandle);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+	glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y,
+		0, 0, app->displaySize.x, app->displaySize.y,
+		GL_DEPTH_BUFFER_BIT, GL_NEAREST
+	);
+
+	//We "bind" the default frame buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//And then we proceed as usual
+	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+	RenderLightGizmos(app);
 	RenderSkybox(app);
 
 	glDisable(GL_DEPTH_TEST);
-	glUseProgram(0);
 }
 
 void Render(App* app)
@@ -1048,7 +1050,7 @@ void Render(App* app)
 
 		RenderToQuad(app, textureHandle);
 
-		RenderLightGizmos(app);
+		PostRenderPass(app);
 	}
 	break;
 
