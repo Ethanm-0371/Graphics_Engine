@@ -4,12 +4,9 @@
 
 layout(location=0) in vec3 aPosition;
 
-layout(binding = 0, std140) uniform LocalParams
-{
-	mat4 uWorldViewProjectionMatrix;
-};
-
 out vec3 vTexCoord;
+
+uniform mat4 uWorldViewProjectionMatrix;
 
 void main()
 {

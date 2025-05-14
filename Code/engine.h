@@ -235,7 +235,10 @@ struct App
 	u32 magentaTexIdx;
 
 	// cubemap indices
-	u32 skyboxTexIdx;
+	u32 meadowSkyboxTexIdx;
+	u32 langholmenSkyboxTexIdx;
+	u32 SFParkSkyboxTexIdx;
+	int currentSkybox;
 
 	//model indices
 	u32 patrickModel;
@@ -267,13 +270,16 @@ struct App
 	GLuint deferredLightingPass_albedoTexture;
 
 	// Location of the texture uniforms in the lighting pass shader???
+	GLuint skybox_uMatrix;
 	GLuint skybox_uTexture;
 
 	// VAOs
 	GLuint targetQuad_vao;
 	GLuint cube_vao;
 	GLuint sphere_vao;
+
 	GLuint skybox_vao;
+	mat4 skyboxViewProjection;
 
 	//Uniforms buffer
 	Buffer uniformsBuffer;
