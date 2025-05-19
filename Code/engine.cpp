@@ -457,14 +457,70 @@ void Init(App* app)
 	app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
 	app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-	std::vector<std::string> meadowPaths = { "Skyboxes/Meadow/posx.jpg","Skyboxes/Meadow/negx.jpg","Skyboxes/Meadow/negy.jpg","Skyboxes/Meadow/posy.jpg","Skyboxes/Meadow/posz.jpg","Skyboxes/Meadow/negz.jpg" };
-	std::vector<std::string> langholmenPaths = { "Skyboxes/Langholmen/posx.jpg","Skyboxes/Langholmen/negx.jpg","Skyboxes/Langholmen/negy.jpg","Skyboxes/Langholmen/posy.jpg","Skyboxes/Langholmen/posz.jpg","Skyboxes/Langholmen/negz.jpg" };
-	std::vector<std::string> sfparkPaths = { "Skyboxes/SF_Park/posx.jpg","Skyboxes/SF_Park/negx.jpg","Skyboxes/SF_Park/negy.jpg","Skyboxes/SF_Park/posy.jpg","Skyboxes/SF_Park/posz.jpg","Skyboxes/SF_Park/negz.jpg" };
-	std::vector<std::string> bikiniBottomPaths = { "Skyboxes/BikiniBottom/posx.jpg","Skyboxes/BikiniBottom/negx.jpg","Skyboxes/BikiniBottom/negy.jpg","Skyboxes/BikiniBottom/posy.jpg","Skyboxes/BikiniBottom/posz.jpg","Skyboxes/BikiniBottom/negz.jpg" };
-	app->meadowSkyboxTexIdx = LoadCubemapTexture(app, meadowPaths);
-	app->langholmenSkyboxTexIdx = LoadCubemapTexture(app, langholmenPaths);
-	app->SFParkSkyboxTexIdx = LoadCubemapTexture(app, sfparkPaths);
-	app->bikiniBottomSkyboxTexIdx = LoadCubemapTexture(app, bikiniBottomPaths);
+	std::vector<std::string> meadowPaths =				{ "Skyboxes/Meadow/posx.jpg",
+											 "Skyboxes/Meadow/negx.jpg",
+											 "Skyboxes/Meadow/negy.jpg",
+											 "Skyboxes/Meadow/posy.jpg",
+											 "Skyboxes/Meadow/posz.jpg",
+											 "Skyboxes/Meadow/negz.jpg" };
+	std::vector<std::string> langholmenPaths =			{ "Skyboxes/Langholmen/posx.jpg",
+												 "Skyboxes/Langholmen/negx.jpg",
+												 "Skyboxes/Langholmen/negy.jpg",
+												 "Skyboxes/Langholmen/posy.jpg",
+												 "Skyboxes/Langholmen/posz.jpg",
+												 "Skyboxes/Langholmen/negz.jpg" };
+	std::vector<std::string> sfparkPaths =				{ "Skyboxes/SF_Park/posx.jpg",
+											 "Skyboxes/SF_Park/negx.jpg",
+											 "Skyboxes/SF_Park/negy.jpg",
+											 "Skyboxes/SF_Park/posy.jpg",
+											 "Skyboxes/SF_Park/posz.jpg",
+											 "Skyboxes/SF_Park/negz.jpg" };
+	std::vector<std::string> bikiniBottomPaths =		{ "Skyboxes/BikiniBottom/posx.jpg",
+												   "Skyboxes/BikiniBottom/negx.jpg",
+												   "Skyboxes/BikiniBottom/negy.jpg",
+												   "Skyboxes/BikiniBottom/posy.jpg",
+												   "Skyboxes/BikiniBottom/posz.jpg",
+												   "Skyboxes/BikiniBottom/negz.jpg" };
+	std::vector<std::string> hornstullsStrandPaths =	{ "Skyboxes/HornstullsStrandNight/posx.jpg",
+													   "Skyboxes/HornstullsStrandNight/negx.jpg",
+													   "Skyboxes/HornstullsStrandNight/negy.jpg",
+													   "Skyboxes/HornstullsStrandNight/posy.jpg",
+													   "Skyboxes/HornstullsStrandNight/posz.jpg",
+													   "Skyboxes/HornstullsStrandNight/negz.jpg" };
+	std::vector<std::string> pondPaths =				{ "Skyboxes/PondNight/posx.jpg",
+										   "Skyboxes/PondNight/negx.jpg",
+										   "Skyboxes/PondNight/negy.jpg",
+										   "Skyboxes/PondNight/posy.jpg",
+										   "Skyboxes/PondNight/posz.jpg",
+										   "Skyboxes/PondNight/negz.jpg" };
+	std::vector<std::string> powerLinesPaths =			{ "Skyboxes/PowerlinesNight/posx.jpg",
+												 "Skyboxes/PowerlinesNight/negx.jpg",
+												 "Skyboxes/PowerlinesNight/negy.jpg",
+												 "Skyboxes/PowerlinesNight/posy.jpg",
+												 "Skyboxes/PowerlinesNight/posz.jpg",
+												 "Skyboxes/PowerlinesNight/negz.jpg" };
+	std::vector<std::string> swedishRoyalCastlePaths =	{ "Skyboxes/SwedishRoyalCastleNight/posx.jpg",
+														 "Skyboxes/SwedishRoyalCastleNight/negx.jpg",
+														 "Skyboxes/SwedishRoyalCastleNight/negy.jpg",
+														 "Skyboxes/SwedishRoyalCastleNight/posy.jpg",
+														 "Skyboxes/SwedishRoyalCastleNight/posz.jpg",
+														 "Skyboxes/SwedishRoyalCastleNight/negz.jpg" };
+	std::vector<std::string> yokohamaPaths =			{ "Skyboxes/YokohamaNight/posx.jpg",
+											   "Skyboxes/YokohamaNight/negx.jpg",
+											   "Skyboxes/YokohamaNight/negy.jpg",
+											   "Skyboxes/YokohamaNight/posy.jpg",
+											   "Skyboxes/YokohamaNight/posz.jpg",
+											   "Skyboxes/YokohamaNight/negz.jpg" };
+
+	app->meadowSkyboxTexIdx =				LoadCubemapTexture(app, meadowPaths);
+	app->langholmenSkyboxTexIdx =			LoadCubemapTexture(app, langholmenPaths);
+	app->SFParkSkyboxTexIdx =				LoadCubemapTexture(app, sfparkPaths);
+	app->bikiniBottomSkyboxTexIdx =			LoadCubemapTexture(app, bikiniBottomPaths);
+	app->hornstullsStrandSkyboxTexIdx =		LoadCubemapTexture(app, hornstullsStrandPaths);
+	app->pondSkyboxTexIdx =					LoadCubemapTexture(app, pondPaths);
+	app->powerLinesSkyboxTexIdx =			LoadCubemapTexture(app, powerLinesPaths);
+	app->swedishRoyalCastleSkyboxTexIdx =	LoadCubemapTexture(app, swedishRoyalCastlePaths);
+	app->yokohamaSkyboxTexIdx =				LoadCubemapTexture(app, yokohamaPaths);
 
 	// Models init ----------------------------------------------------------------------------------------------------
 
@@ -511,7 +567,7 @@ void Gui(App* app)
 	// Rendering modes ------------------------------------------------------------------------------------------------
 	ImGui::Begin("Rendering modes");
 
-	const char* skyboxTags[] = { "Meadow", "Langholmen", "San Francisco Park", "Bikini Bottom" };
+	const char* skyboxTags[] = { "Meadow", "Langholmen", "San Francisco Park", "Bikini Bottom", "HornstullsStrand Night", "Pond Night", "Powerlines Night", "Swedish Royal Castle Night", "Yokohama Night"};
 	if (ImGui::BeginCombo("Skybox", skyboxTags[app->currentSkybox]))
 	{
 		for (int n = 0; n < ARRAY_COUNT(skyboxTags); n++)
@@ -960,6 +1016,11 @@ void RenderSkybox(App* app)
 		case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
 		case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
 		case 3:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->bikiniBottomSkyboxTexIdx); break;
+		case 4:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->hornstullsStrandSkyboxTexIdx); break;
+		case 5:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->pondSkyboxTexIdx); break;
+		case 6:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->powerLinesSkyboxTexIdx); break;
+		case 7:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->swedishRoyalCastleSkyboxTexIdx); break;
+		case 8:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->yokohamaSkyboxTexIdx); break;
 		default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
 	}
 

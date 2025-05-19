@@ -239,6 +239,12 @@ struct App
 	u32 langholmenSkyboxTexIdx;
 	u32 SFParkSkyboxTexIdx;
 	u32 bikiniBottomSkyboxTexIdx;
+	u32 hornstullsStrandSkyboxTexIdx;
+	u32 pondSkyboxTexIdx;
+	u32 powerLinesSkyboxTexIdx;
+	u32 swedishRoyalCastleSkyboxTexIdx;
+	u32 yokohamaSkyboxTexIdx;
+
 	int currentSkybox;
 
 	//model indices
