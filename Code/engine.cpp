@@ -437,6 +437,14 @@ void Init(App* app)
 	app->skybox_uTexture = glGetUniformLocation(skyboxProgram.handle, "uTexture");
 	app->skybox_uMatrix = glGetUniformLocation(skyboxProgram.handle, "uWorldViewProjectionMatrix");
 
+	//Skybox reflection
+	app->skyboxReflectionProgramIdx = LoadProgram(app, "skybox_shader.glsl", "SKYBOX_REFLECTION"); //This is used to render a mesh
+	Program& skyboxReflectionProgram = app->programs[app->skyboxReflectionProgramIdx];
+	app->skybox_ref_uWorldMatrix = glGetUniformLocation(skyboxReflectionProgram.handle, "uWorldMatrix");;
+	app->skybox_ref_uWorldViewProjMatrix = glGetUniformLocation(skyboxReflectionProgram.handle, "uWorldViewProjectionMatrix");;
+	app->skybox_ref_uCameraPosition = glGetUniformLocation(skyboxReflectionProgram.handle, "uCameraPosition");;
+	app->skybox_ref_uTexture = glGetUniformLocation(skyboxReflectionProgram.handle, "uTexture");;
+
 	// Camera init ----------------------------------------------------------------------------------------------------
 
 	app->camera = Camera{ mat4(1.0),
@@ -846,7 +854,7 @@ void Update(App* app)
 	glm::mat3 skyboxRot = glm::mat3(view);
 	glm::mat4 skyboxView = glm::mat4(skyboxRot);
 
-	app->skyboxViewProjection = projection * skyboxView * TransformPositionScale(vec3(0.0f), vec3(-cam.zfar/2));
+	app->skyboxViewProjection = projection * skyboxView * TransformPositionScale(vec3(0.0f), vec3(-cam.zfar / 2));
 
 	PushSceneToBuffer(app, projection, view);
 
@@ -1055,6 +1063,38 @@ void PostRenderPass(App* app)
 	glDisable(GL_DEPTH_TEST);
 }
 
+void SkyboxReflection(App* app)
+{
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+
+	Program& skyboxReflectionProgram = app->programs[app->skyboxReflectionProgramIdx];
+	glUseProgram(skyboxReflectionProgram.handle);
+
+	glUniformMatrix4fv(app->skybox_ref_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(app->skyboxViewProjection));
+	glUniformMatrix4fv(app->skybox_ref_uWorldViewProjMatrix, 1, GL_FALSE, glm::value_ptr(app->skyboxViewProjection));
+	glUniform3fv(app->skybox_ref_uCameraPosition, 1, glm::value_ptr(vec3(app->camera.transformation[3])));
+
+	glUniform1i(app->skybox_ref_uTexture, 0);
+	glActiveTexture(GL_TEXTURE0);
+
+	glBindVertexArray(app->skybox_vao);
+	GLsizei indexAmount = 36;
+
+	switch (app->currentSkybox)
+	{
+	case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
+	case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
+	case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
+	default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
+	}
+
+	glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
+
+	glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+	glBindVertexArray(0);
+	glUseProgram(0);
+}
+
 void Render(App* app)
 {
 	switch (app->mode)
@@ -1084,6 +1124,8 @@ void Render(App* app)
 		glDisable(GL_DEPTH_TEST);
 
 		RenderToQuad(app, app->frameBufferAttachmentHandle);
+
+		PostRenderPass(app);
 	}
 	break;
 	case Mode_DeferredRenderTextures:
@@ -1115,6 +1157,8 @@ void Render(App* app)
 		RenderToQuad(app, textureHandle);
 
 		PostRenderPass(app);
+
+		SkyboxReflection(app);
 	}
 	break;
 

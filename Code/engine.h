@@ -226,6 +226,7 @@ struct App
 	u32 deferredLightingProgramIdx;
 	u32 lightVisualizationProgramIdx;
 	u32 skyboxProgramIdx;
+	u32 skyboxReflectionProgramIdx;
 
 	// texture indices
 	u32 diceTexIdx;
@@ -276,9 +277,15 @@ struct App
 	GLuint deferredLightingPass_normalTexture;
 	GLuint deferredLightingPass_albedoTexture;
 
-	// Location of the texture uniforms in the lighting pass shader???
+	// Location of the texture uniforms in the skybox shader???
 	GLuint skybox_uMatrix;
 	GLuint skybox_uTexture;
+
+	// Location of the uniforms in the skybox reflection shader???
+	GLuint skybox_ref_uWorldMatrix;
+	GLuint skybox_ref_uWorldViewProjMatrix;
+	GLuint skybox_ref_uCameraPosition;
+	GLuint skybox_ref_uTexture;
 
 	// VAOs
 	GLuint targetQuad_vao;
