@@ -238,6 +238,7 @@ struct App
 	u32 meadowSkyboxTexIdx;
 	u32 langholmenSkyboxTexIdx;
 	u32 SFParkSkyboxTexIdx;
+	u32 bikiniBottomSkyboxTexIdx;
 	int currentSkybox;
 
 	//model indices

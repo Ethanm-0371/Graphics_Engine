@@ -460,9 +460,11 @@ void Init(App* app)
 	std::vector<std::string> meadowPaths = { "Skyboxes/Meadow/posx.jpg","Skyboxes/Meadow/negx.jpg","Skyboxes/Meadow/negy.jpg","Skyboxes/Meadow/posy.jpg","Skyboxes/Meadow/posz.jpg","Skyboxes/Meadow/negz.jpg" };
 	std::vector<std::string> langholmenPaths = { "Skyboxes/Langholmen/posx.jpg","Skyboxes/Langholmen/negx.jpg","Skyboxes/Langholmen/negy.jpg","Skyboxes/Langholmen/posy.jpg","Skyboxes/Langholmen/posz.jpg","Skyboxes/Langholmen/negz.jpg" };
 	std::vector<std::string> sfparkPaths = { "Skyboxes/SF_Park/posx.jpg","Skyboxes/SF_Park/negx.jpg","Skyboxes/SF_Park/negy.jpg","Skyboxes/SF_Park/posy.jpg","Skyboxes/SF_Park/posz.jpg","Skyboxes/SF_Park/negz.jpg" };
+	std::vector<std::string> bikiniBottomPaths = { "Skyboxes/BikiniBottom/posx.jpg","Skyboxes/BikiniBottom/negx.jpg","Skyboxes/BikiniBottom/negy.jpg","Skyboxes/BikiniBottom/posy.jpg","Skyboxes/BikiniBottom/posz.jpg","Skyboxes/BikiniBottom/negz.jpg" };
 	app->meadowSkyboxTexIdx = LoadCubemapTexture(app, meadowPaths);
 	app->langholmenSkyboxTexIdx = LoadCubemapTexture(app, langholmenPaths);
 	app->SFParkSkyboxTexIdx = LoadCubemapTexture(app, sfparkPaths);
+	app->bikiniBottomSkyboxTexIdx = LoadCubemapTexture(app, bikiniBottomPaths);
 
 	// Models init ----------------------------------------------------------------------------------------------------
 
@@ -509,7 +511,7 @@ void Gui(App* app)
 	// Rendering modes ------------------------------------------------------------------------------------------------
 	ImGui::Begin("Rendering modes");
 
-	const char* skyboxTags[] = { "Meadow", "Langholmen", "San Francisco Park" };
+	const char* skyboxTags[] = { "Meadow", "Langholmen", "San Francisco Park", "Bikini Bottom" };
 	if (ImGui::BeginCombo("Skybox", skyboxTags[app->currentSkybox]))
 	{
 		for (int n = 0; n < ARRAY_COUNT(skyboxTags); n++)
@@ -957,6 +959,7 @@ void RenderSkybox(App* app)
 		case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
 		case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
 		case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
+		case 3:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->bikiniBottomSkyboxTexIdx); break;
 		default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
 	}
 
