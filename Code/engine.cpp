@@ -1070,25 +1070,48 @@ void SkyboxReflection(App* app)
 	Program& skyboxReflectionProgram = app->programs[app->skyboxReflectionProgramIdx];
 	glUseProgram(skyboxReflectionProgram.handle);
 
-	glUniformMatrix4fv(app->skybox_ref_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(app->skyboxViewProjection));
-	glUniformMatrix4fv(app->skybox_ref_uWorldViewProjMatrix, 1, GL_FALSE, glm::value_ptr(app->skyboxViewProjection));
 	glUniform3fv(app->skybox_ref_uCameraPosition, 1, glm::value_ptr(vec3(app->camera.transformation[3])));
 
 	glUniform1i(app->skybox_ref_uTexture, 0);
 	glActiveTexture(GL_TEXTURE0);
-
-	glBindVertexArray(app->skybox_vao);
-	GLsizei indexAmount = 36;
 
 	switch (app->currentSkybox)
 	{
 	case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
 	case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
 	case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
+	case 3:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->bikiniBottomSkyboxTexIdx); break;
+	case 4:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->hornstullsStrandSkyboxTexIdx); break;
+	case 5:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->pondSkyboxTexIdx); break;
+	case 6:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->powerLinesSkyboxTexIdx); break;
+	case 7:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->swedishRoyalCastleSkyboxTexIdx); break;
+	case 8:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->yokohamaSkyboxTexIdx); break;
 	default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
 	}
 
-	glDrawElements(GL_TRIANGLES, indexAmount, GL_UNSIGNED_SHORT, 0);
+	mat4 view = glm::inverse(app->camera.transformation);
+	mat4 projection = glm::perspective(glm::radians(app->camera.fov), app->camera.aspectRatio, app->camera.znear, app->camera.zfar);
+
+	for (Entity& entity : app->entityList)
+	{
+		mat4 model = entity.transformationMatrix;
+		mat4 mvp = projection * view * model;
+
+		glUniformMatrix4fv(app->skybox_ref_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(app->skybox_ref_uWorldViewProjMatrix, 1, GL_FALSE, glm::value_ptr(mvp));
+
+		Model& modelData = app->models[entity.model];
+		Mesh& mesh = app->meshes[modelData.meshIdx];
+
+		for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+		{
+			GLuint vao = FindVAO(mesh, i, skyboxReflectionProgram);
+			glBindVertexArray(vao);
+
+			Submesh& submesh = mesh.submeshes[i];
+			glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+		}
+	}
 
 	glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	glBindVertexArray(0);
