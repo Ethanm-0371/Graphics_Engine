@@ -271,6 +271,7 @@ struct App
 
 	// Location of the texture uniform in the render texture shader???
 	GLuint renderTexturesProgram_uTexture;
+	GLuint renderTexturesProgram_cubeTexture;
 
 	// Location of the texture uniforms in the lighting pass shader???
 	GLuint deferredLightingPass_posTexture;
@@ -280,12 +281,6 @@ struct App
 	// Location of the texture uniforms in the skybox shader???
 	GLuint skybox_uMatrix;
 	GLuint skybox_uTexture;
-
-	// Location of the uniforms in the skybox reflection shader???
-	GLuint skybox_ref_uWorldMatrix;
-	GLuint skybox_ref_uWorldViewProjMatrix;
-	GLuint skybox_ref_uCameraPosition;
-	GLuint skybox_ref_uTexture;
 
 	// VAOs
 	GLuint targetQuad_vao;

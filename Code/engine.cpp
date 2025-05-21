@@ -419,6 +419,7 @@ void Init(App* app)
 	Program& renderTexturesProgram = app->programs[app->renderTexturesProgramIdx];
 
 	app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
+	app->renderTexturesProgram_cubeTexture = glGetUniformLocation(renderTexturesProgram.handle, "cubeTexture");
 
 	// Deferred Lighting
 	app->deferredLightingProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "DEFERRED_LIGHTING_PASS"); //This is used for the deferred lighting pass
@@ -437,14 +438,6 @@ void Init(App* app)
 	Program& skyboxProgram = app->programs[app->skyboxProgramIdx];
 	app->skybox_uTexture = glGetUniformLocation(skyboxProgram.handle, "uTexture");
 	app->skybox_uMatrix = glGetUniformLocation(skyboxProgram.handle, "uWorldViewProjectionMatrix");
-
-	//Skybox reflection
-	app->skyboxReflectionProgramIdx = LoadProgram(app, "skybox_shader.glsl", "SKYBOX_REFLECTION"); //This is used to render a mesh
-	Program& skyboxReflectionProgram = app->programs[app->skyboxReflectionProgramIdx];
-	app->skybox_ref_uWorldMatrix = glGetUniformLocation(skyboxReflectionProgram.handle, "uWorldMatrix");;
-	app->skybox_ref_uWorldViewProjMatrix = glGetUniformLocation(skyboxReflectionProgram.handle, "uWorldViewProjectionMatrix");;
-	app->skybox_ref_uCameraPosition = glGetUniformLocation(skyboxReflectionProgram.handle, "uCameraPosition");;
-	app->skybox_ref_uTexture = glGetUniformLocation(skyboxReflectionProgram.handle, "uTexture");;
 
 	// Camera init ----------------------------------------------------------------------------------------------------
 
@@ -909,6 +902,22 @@ void RenderMeshes(App* app, Program& renderProgram)
 
 	glBindBufferRange(GL_UNIFORM_BUFFER, 0, app->uniformsBuffer.handle, 0, app->globalParamsSize); //Harcoded at 0 bc it is at the beginning
 
+	glActiveTexture(GL_TEXTURE0);
+	switch (app->currentSkybox)
+	{
+	case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
+	case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
+	case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
+	case 3:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->bikiniBottomSkyboxTexIdx); break;
+	case 4:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->hornstullsStrandSkyboxTexIdx); break;
+	case 5:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->pondSkyboxTexIdx); break;
+	case 6:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->powerLinesSkyboxTexIdx); break;
+	case 7:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->swedishRoyalCastleSkyboxTexIdx); break;
+	case 8:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->yokohamaSkyboxTexIdx); break;
+	default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
+	}
+	glUniform1i(app->renderTexturesProgram_cubeTexture, 0);
+
 	for (Entity& entity : app->entityList)
 	{
 		Model& model = app->models[entity.model];
@@ -924,9 +933,9 @@ void RenderMeshes(App* app, Program& renderProgram)
 			u32 submeshMaterialIdx = model.materialIdx[i];
 			Material& submeshMaterial = app->materials[submeshMaterialIdx];
 
-			glActiveTexture(GL_TEXTURE0);
+			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-			glUniform1i(app->texturedMeshProgram_uTexture, 0);
+			glUniform1i(app->renderTexturesProgram_uTexture, 1);
 
 			Submesh& submesh = mesh.submeshes[i];
 			glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
@@ -1064,61 +1073,6 @@ void PostRenderPass(App* app)
 	glDisable(GL_DEPTH_TEST);
 }
 
-void SkyboxReflection(App* app)
-{
-	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-	Program& skyboxReflectionProgram = app->programs[app->skyboxReflectionProgramIdx];
-	glUseProgram(skyboxReflectionProgram.handle);
-
-	glUniform3fv(app->skybox_ref_uCameraPosition, 1, glm::value_ptr(vec3(app->camera.transformation[3])));
-
-	glUniform1i(app->skybox_ref_uTexture, 0);
-	glActiveTexture(GL_TEXTURE0);
-
-	switch (app->currentSkybox)
-	{
-	case 0:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
-	case 1:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->langholmenSkyboxTexIdx); break;
-	case 2:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->SFParkSkyboxTexIdx); break;
-	case 3:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->bikiniBottomSkyboxTexIdx); break;
-	case 4:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->hornstullsStrandSkyboxTexIdx); break;
-	case 5:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->pondSkyboxTexIdx); break;
-	case 6:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->powerLinesSkyboxTexIdx); break;
-	case 7:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->swedishRoyalCastleSkyboxTexIdx); break;
-	case 8:		glBindTexture(GL_TEXTURE_CUBE_MAP, app->yokohamaSkyboxTexIdx); break;
-	default:	glBindTexture(GL_TEXTURE_CUBE_MAP, app->meadowSkyboxTexIdx); break;
-	}
-
-	mat4 view = glm::inverse(app->camera.transformation);
-	mat4 projection = glm::perspective(glm::radians(app->camera.fov), app->camera.aspectRatio, app->camera.znear, app->camera.zfar);
-
-	for (Entity& entity : app->entityList)
-	{
-		mat4 model = entity.transformationMatrix;
-		mat4 mvp = projection * view * model;
-
-		glUniformMatrix4fv(app->skybox_ref_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(model));
-		glUniformMatrix4fv(app->skybox_ref_uWorldViewProjMatrix, 1, GL_FALSE, glm::value_ptr(mvp));
-
-		Model& modelData = app->models[entity.model];
-		Mesh& mesh = app->meshes[modelData.meshIdx];
-
-		for (u32 i = 0; i < mesh.submeshes.size(); ++i)
-		{
-			GLuint vao = FindVAO(mesh, i, skyboxReflectionProgram);
-			glBindVertexArray(vao);
-
-			Submesh& submesh = mesh.submeshes[i];
-			glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
-		}
-	}
-
-	glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-	glBindVertexArray(0);
-	glUseProgram(0);
-}
-
 void Render(App* app)
 {
 	switch (app->mode)
@@ -1181,8 +1135,6 @@ void Render(App* app)
 		RenderToQuad(app, textureHandle);
 
 		PostRenderPass(app);
-
-		SkyboxReflection(app);
 	}
 	break;
 

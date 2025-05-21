@@ -61,6 +61,7 @@ in vec3 vNormal;
 in vec3 vViewDir;
 
 uniform sampler2D uTexture;
+uniform samplerCube cubeTexture;
 
 layout(binding = 0, std140) uniform GlobalParams
 {
@@ -76,7 +77,13 @@ layout(location = 2) out vec4 rt2; //Position
 
 void main()
 {
-	rt0 = texture(uTexture, vTexCoord);
+	//Skybox reflection
+	vec3 I = normalize(vPosition - uCameraPosition);
+	vec3 R = reflect(I, normalize(vNormal));
+	vec3 skyboxColor = texture(cubeTexture, R).rgb;
+	vec3 albedoColor = texture(uTexture, vTexCoord).rgb;
+
+	rt0 = vec4(mix(albedoColor, skyboxColor, 0.2f), 1.0);
 	rt1 = vec4(normalize(vNormal), 1.0);
 	rt2 = vec4(vPosition, 1.0);
 
