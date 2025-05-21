@@ -232,6 +232,7 @@ u32 LoadCubemapTexture(App* app, std::vector<std::string> cubemapTexturePaths)
 	int width, height, nrChannels;
 	for (unsigned int i = 0; i < cubemapTexturePaths.size(); i++)
 	{
+		stbi_set_flip_vertically_on_load(false);
 		unsigned char* data = stbi_load(cubemapTexturePaths[i].c_str(), &width, &height, &nrChannels, 0);
 		if (data)
 		{
@@ -415,7 +416,7 @@ void Init(App* app)
 
 	// Render textures
 	app->renderTexturesProgramIdx = LoadProgram(app, "render_textures_shader.glsl", "RENDER_TEXTURES"); //This is used to render a mesh
-	Program& renderTexturesProgram = app->programs[app->texturedMeshProgramIdx];
+	Program& renderTexturesProgram = app->programs[app->renderTexturesProgramIdx];
 
 	app->renderTexturesProgram_uTexture = glGetUniformLocation(renderTexturesProgram.handle, "uTexture");
 
@@ -467,56 +468,56 @@ void Init(App* app)
 
 	std::vector<std::string> meadowPaths =				{ "Skyboxes/Meadow/posx.jpg",
 											 "Skyboxes/Meadow/negx.jpg",
-											 "Skyboxes/Meadow/negy.jpg",
 											 "Skyboxes/Meadow/posy.jpg",
+											 "Skyboxes/Meadow/negy.jpg",
 											 "Skyboxes/Meadow/posz.jpg",
 											 "Skyboxes/Meadow/negz.jpg" };
 	std::vector<std::string> langholmenPaths =			{ "Skyboxes/Langholmen/posx.jpg",
 												 "Skyboxes/Langholmen/negx.jpg",
-												 "Skyboxes/Langholmen/negy.jpg",
 												 "Skyboxes/Langholmen/posy.jpg",
+												 "Skyboxes/Langholmen/negy.jpg",
 												 "Skyboxes/Langholmen/posz.jpg",
 												 "Skyboxes/Langholmen/negz.jpg" };
 	std::vector<std::string> sfparkPaths =				{ "Skyboxes/SF_Park/posx.jpg",
 											 "Skyboxes/SF_Park/negx.jpg",
-											 "Skyboxes/SF_Park/negy.jpg",
 											 "Skyboxes/SF_Park/posy.jpg",
+											 "Skyboxes/SF_Park/negy.jpg",
 											 "Skyboxes/SF_Park/posz.jpg",
 											 "Skyboxes/SF_Park/negz.jpg" };
 	std::vector<std::string> bikiniBottomPaths =		{ "Skyboxes/BikiniBottom/posx.jpg",
 												   "Skyboxes/BikiniBottom/negx.jpg",
-												   "Skyboxes/BikiniBottom/negy.jpg",
 												   "Skyboxes/BikiniBottom/posy.jpg",
+												   "Skyboxes/BikiniBottom/negy.jpg",
 												   "Skyboxes/BikiniBottom/posz.jpg",
 												   "Skyboxes/BikiniBottom/negz.jpg" };
 	std::vector<std::string> hornstullsStrandPaths =	{ "Skyboxes/HornstullsStrandNight/posx.jpg",
 													   "Skyboxes/HornstullsStrandNight/negx.jpg",
-													   "Skyboxes/HornstullsStrandNight/negy.jpg",
 													   "Skyboxes/HornstullsStrandNight/posy.jpg",
+													   "Skyboxes/HornstullsStrandNight/negy.jpg",
 													   "Skyboxes/HornstullsStrandNight/posz.jpg",
 													   "Skyboxes/HornstullsStrandNight/negz.jpg" };
 	std::vector<std::string> pondPaths =				{ "Skyboxes/PondNight/posx.jpg",
 										   "Skyboxes/PondNight/negx.jpg",
-										   "Skyboxes/PondNight/negy.jpg",
 										   "Skyboxes/PondNight/posy.jpg",
+										   "Skyboxes/PondNight/negy.jpg",
 										   "Skyboxes/PondNight/posz.jpg",
 										   "Skyboxes/PondNight/negz.jpg" };
 	std::vector<std::string> powerLinesPaths =			{ "Skyboxes/PowerlinesNight/posx.jpg",
 												 "Skyboxes/PowerlinesNight/negx.jpg",
-												 "Skyboxes/PowerlinesNight/negy.jpg",
 												 "Skyboxes/PowerlinesNight/posy.jpg",
+												 "Skyboxes/PowerlinesNight/negy.jpg",
 												 "Skyboxes/PowerlinesNight/posz.jpg",
 												 "Skyboxes/PowerlinesNight/negz.jpg" };
 	std::vector<std::string> swedishRoyalCastlePaths =	{ "Skyboxes/SwedishRoyalCastleNight/posx.jpg",
 														 "Skyboxes/SwedishRoyalCastleNight/negx.jpg",
-														 "Skyboxes/SwedishRoyalCastleNight/negy.jpg",
 														 "Skyboxes/SwedishRoyalCastleNight/posy.jpg",
+														 "Skyboxes/SwedishRoyalCastleNight/negy.jpg",
 														 "Skyboxes/SwedishRoyalCastleNight/posz.jpg",
 														 "Skyboxes/SwedishRoyalCastleNight/negz.jpg" };
 	std::vector<std::string> yokohamaPaths =			{ "Skyboxes/YokohamaNight/posx.jpg",
 											   "Skyboxes/YokohamaNight/negx.jpg",
-											   "Skyboxes/YokohamaNight/negy.jpg",
 											   "Skyboxes/YokohamaNight/posy.jpg",
+											   "Skyboxes/YokohamaNight/negy.jpg",
 											   "Skyboxes/YokohamaNight/posz.jpg",
 											   "Skyboxes/YokohamaNight/negz.jpg" };
 
@@ -854,7 +855,7 @@ void Update(App* app)
 	glm::mat3 skyboxRot = glm::mat3(view);
 	glm::mat4 skyboxView = glm::mat4(skyboxRot);
 
-	app->skyboxViewProjection = projection * skyboxView * TransformPositionScale(vec3(0.0f), vec3(-cam.zfar / 2));
+	app->skyboxViewProjection = projection * skyboxView * TransformPositionScale(vec3(0.0f), vec3(cam.zfar / 2));
 
 	PushSceneToBuffer(app, projection, view);
 
