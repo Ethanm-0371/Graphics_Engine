@@ -151,6 +151,9 @@ struct Camera
 {
 	mat4 transformation;
 
+	vec3 pivot;
+	float pivotDistance;
+
 	float aspectRatio;
 	float znear;
 	float zfar;
