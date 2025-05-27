@@ -724,6 +724,18 @@ void ProgramHotReload(App* app)
 
 void HandleInput(App* app, Camera& cam)
 {
+	if (app->input.mouseScrollDelta.y != 0)
+	{
+		float scrollSensitivity = 0.3f;
+
+		float distanceCalc = app->input.mouseScrollDelta.y * scrollSensitivity;
+		if ((cam.pivotDistance - distanceCalc) > 0.5f)
+		{
+			cam.pivotDistance -= distanceCalc;
+			cam.transformation[3] = vec4(cam.pivot + vec3(cam.transformation[2]) * cam.pivotDistance, 1);
+		}
+	}
+
 	if (app->input.mouseButtons[0] == BUTTON_PRESSED)
 	{
 		float xIncrease = app->input.mouseDelta.x;
