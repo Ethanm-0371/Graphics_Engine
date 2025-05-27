@@ -659,7 +659,22 @@ void InspectorWindow(App* app, Light& selectedLight)
 {
 	ImGui::Begin("Inspector");
 
-	ImGui::InputScalar("Mamaguevo", ImGuiDataType_U32, &selectedLight.strength);
+	ImGui::Text("Transformation");
+	ImGui::Separator();
+
+	ImGui::DragFloat3("Light Position", (float*)&selectedLight.position, 0.2f);
+	
+	if (selectedLight.type == 0)
+		ImGui::DragFloat3("Light Direction", (float*)&selectedLight.direction, 0.2f);
+
+	ImGui::Spacing();
+
+	ImGui::Text("Light Properties");
+	ImGui::Separator();
+
+	ImGui::DragInt("Light Strength", (int*)&selectedLight.strength, 1, 0, 9999, "%d", ImGuiSliderFlags_AlwaysClamp);
+
+	ImGui::Spacing();
 
 	ImGui::Text("Light Color");
 	ImGui::ColorPicker3("Target Color", (float*)&selectedLight.color);
