@@ -313,6 +313,11 @@ struct App
 
 	GLuint directFrameBufferHandle;
 	GLuint deferredFrameBufferHandle;
+
+	// UI
+	bool selectedObjType = false;
+	int selectedEntityIndex = 0;
+	int selectedLightsIndex = -1;
 };
 
 void GenFrameBuffers(App* app);

@@ -566,12 +566,11 @@ void Init(App* app)
 	app->currentSkybox = 0;
 }
 
-void Gui(App* app)
+void RenderingModesWindow(App* app)
 {
-	// Rendering modes ------------------------------------------------------------------------------------------------
 	ImGui::Begin("Rendering modes");
 
-	const char* skyboxTags[] = { "Meadow", "Langholmen", "San Francisco Park", "Bikini Bottom", "HornstullsStrand Night", "Pond Night", "Powerlines Night", "Swedish Royal Castle Night", "Yokohama Night"};
+	const char* skyboxTags[] = { "Meadow", "Langholmen", "San Francisco Park", "Bikini Bottom", "HornstullsStrand Night", "Pond Night", "Powerlines Night", "Swedish Royal Castle Night", "Yokohama Night" };
 	if (ImGui::BeginCombo("Skybox", skyboxTags[app->currentSkybox]))
 	{
 		for (int n = 0; n < ARRAY_COUNT(skyboxTags); n++)
@@ -625,8 +624,9 @@ void Gui(App* app)
 	}
 
 	ImGui::End();
-
-	// OpenGL info ----------------------------------------------------------------------------------------------------
+}
+void OpenGLInfoWindow(App* app)
+{
 	ImGui::Begin("OpenGL info");
 	ImGui::Text("ImGui version: %s", ImGui::GetVersion());
 
@@ -646,8 +646,72 @@ void Gui(App* app)
 	}
 
 	ImGui::End();
+}
+void InspectorWindow(App* app, Entity& selectedEntity)
+{
+	ImGui::Begin("Inspector");
 
-	// Information ----------------------------------------------------------------------------------------------------
+	ImGui::Text("Entity Inspector goes here");
+
+	ImGui::End();
+}
+void InspectorWindow(App* app, Light& selectedLight)
+{
+	ImGui::Begin("Inspector");
+
+	ImGui::InputScalar("Mamaguevo", ImGuiDataType_U32, &selectedLight.strength);
+
+	ImGui::Text("Light Color");
+	ImGui::ColorPicker3("Target Color", (float*)&selectedLight.color);
+
+	ImGui::End();
+}
+void HierarchyWindow(App* app)
+{
+	ImGui::Begin("Hierarchy");
+
+	ImGui::Text("Entities");
+	ImGui::Separator();
+
+	for (int i = 0; i < app->entityList.size(); i++)
+	{
+		std::string name = "Entity " + std::to_string(i);
+		if (ImGui::Selectable(name.c_str(), app->selectedEntityIndex == i))
+		{
+			app->selectedObjType = false;
+			app->selectedEntityIndex = i;
+			app->selectedLightsIndex = -1;
+		}
+	}
+
+	ImGui::Dummy(ImVec2(0.0f, 20.0f)); //Spacing
+
+	ImGui::Text("Lights");
+	ImGui::Separator();
+	for (int i = 0; i < app->lightList.size(); i++)
+	{
+		std::string name = "Light " + std::to_string(i);
+		if (ImGui::Selectable(name.c_str(), app->selectedLightsIndex == i))
+		{
+			app->selectedObjType = true;
+			app->selectedEntityIndex = -1;
+			app->selectedLightsIndex = i;
+		}
+	}
+
+	if (app->selectedObjType)
+	{
+		InspectorWindow(app, app->lightList.at(app->selectedLightsIndex));
+	}
+	else
+	{
+		InspectorWindow(app, app->entityList.at(app->selectedEntityIndex));
+	}
+
+	ImGui::End();
+}
+void InformationWindow(App* app)
+{
 	ImGui::Begin("Info");
 	ImGui::Text("FPS: %f", 1.0f / app->deltaTime);
 	ImGui::Separator();
@@ -702,6 +766,17 @@ void Gui(App* app)
 	}
 
 	ImGui::End();
+}
+
+void Gui(App* app)
+{
+	RenderingModesWindow(app);
+
+	OpenGLInfoWindow(app);
+
+	HierarchyWindow(app);
+
+	InformationWindow(app);
 }
 
 void ProgramHotReload(App* app)
