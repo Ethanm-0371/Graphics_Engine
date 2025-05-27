@@ -731,17 +731,15 @@ void HandleInput(App* app, Camera& cam)
 
 		float orbitSensitivity = 0.1f;
 		
-		//cam.transformation = glm::translate(cam.transformation, xInRefFrame);
-		cam.transformation = glm::translate(cam.transformation, -vec3(xIncrease * orbitSensitivity, 0, 0));
+		//Get close
+		cam.transformation[3] = vec4(cam.pivot, 1);
 
-		//cam.transformation = glm::translate(cam.transformation, yInRefFrame);
-		cam.transformation = glm::translate(cam.transformation, -vec3(0, yIncrease * orbitSensitivity, 0));
+		//Rotate
+		cam.transformation = glm::rotate(cam.transformation, glm::radians(-xIncrease * orbitSensitivity), vec3(0, 1, 0) * (glm::mat3)cam.transformation);
+		cam.transformation = glm::rotate(cam.transformation, glm::radians(-yIncrease * orbitSensitivity), vec3(1, 0, 0));
 
-		//cam.transformation = glm::lookAt(vec3(cam.transformation[3]), cam.pivot, rotMat[1]);
-		cam.transformation = glm::inverse(glm::lookAt(vec3(cam.transformation[3]), cam.pivot, vec3(0,1,0)));
-
-
-		//Set cam distance from the pivot using pivotDistance here
+		//Get back
+		cam.transformation[3] = vec4(cam.pivot + vec3(cam.transformation[2]) * cam.pivotDistance, 1);
 	}
 
 	if (app->input.mouseButtons[1] == BUTTON_PRESSED)
