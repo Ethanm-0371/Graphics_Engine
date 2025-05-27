@@ -726,7 +726,7 @@ void HandleInput(App* app, Camera& cam)
 {
 	if (app->input.mouseScrollDelta.y != 0)
 	{
-		float scrollSensitivity = 0.3f;
+		float scrollSensitivity = 0.4f;
 
 		float distanceCalc = app->input.mouseScrollDelta.y * scrollSensitivity;
 		if ((cam.pivotDistance - distanceCalc) > 0.5f)
@@ -736,7 +736,7 @@ void HandleInput(App* app, Camera& cam)
 		}
 	}
 
-	if (app->input.mouseButtons[0] == BUTTON_PRESSED)
+	if (app->input.mouseButtons[LEFT] == BUTTON_PRESSED)
 	{
 		float xIncrease = app->input.mouseDelta.x;
 		float yIncrease = app->input.mouseDelta.y;
@@ -754,7 +754,7 @@ void HandleInput(App* app, Camera& cam)
 		cam.transformation[3] = vec4(cam.pivot + vec3(cam.transformation[2]) * cam.pivotDistance, 1);
 	}
 
-	if (app->input.mouseButtons[1] == BUTTON_PRESSED)
+	if (app->input.mouseButtons[RIGHT] == BUTTON_PRESSED)
 	{
 		glm::mat3 rotMat = glm::mat3(cam.transformation);
 		vec3 position = vec3(cam.transformation[3]);
@@ -808,6 +808,19 @@ void HandleInput(App* app, Camera& cam)
 		cam.transformation = glm::rotate(cam.transformation, glm::radians(-yIncrease / 10.0f), vec3(1, 0, 0));
 
 		cam.pivot = position + forward * cam.pivotDistance;
+	}
+
+	if (app->input.mouseButtons[MIDDLE] == BUTTON_PRESSED)
+	{
+		float movementSensitivity = 0.01f;
+
+		vec3 right = vec3(cam.transformation[0]);
+		vec3 up = vec3(cam.transformation[1]);
+
+		cam.pivot -= right * app->input.mouseDelta.x * movementSensitivity;
+		cam.pivot += up * app->input.mouseDelta.y * movementSensitivity;
+
+		cam.transformation[3] = vec4(cam.pivot + vec3(cam.transformation[2]) * cam.pivotDistance, 1);
 	}
 }
 
