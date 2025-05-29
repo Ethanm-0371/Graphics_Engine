@@ -533,11 +533,11 @@ void Init(App* app)
 
 	// Entities placement ---------------------------------------------------------------------------------------------
 
-	app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, 0), vec3(0.5)), app->patrickModel });
-	app->entityList.push_back({ TransformPositionScale(vec3(2.5, 1.8, 0), vec3(0.3)), app->patrickModel });
-	app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, -2.5), vec3(0.2)), app->patrickModel });
+	app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, 0), vec3(0.5)), app->patrickModel, 0 });
+	app->entityList.push_back({ TransformPositionScale(vec3(2.5, 1.8, 0), vec3(0.3)), app->patrickModel, 20 });
+	app->entityList.push_back({ TransformPositionScale(vec3(0, 1.8, -2.5), vec3(0.2)), app->patrickModel, 70 });
 
-	app->entityList.push_back({ TransformPositionScale(vec3(0, 0, 0), vec3(5.0)), app->planeModel });
+	app->entityList.push_back({ TransformPositionScale(vec3(0, 0, 0), vec3(5.0)), app->planeModel, 10 });
 
 	// Lights placement -----------------------------------------------------------------------------------------------
 
@@ -651,7 +651,7 @@ void InspectorWindow(App* app, Entity& selectedEntity)
 {
 	ImGui::Begin("Inspector");
 
-	ImGui::Text("Entity Inspector goes here");
+	ImGui::SliderInt("Reflectiveness", (int*)&selectedEntity.reflectiveness, 0, 100, "%d%%");
 
 	ImGui::End();
 }
@@ -947,6 +947,7 @@ void PushSceneToBuffer(App* app, mat4 projection, mat4 view)
 
 		PushMat4(app->uniformsBuffer, entity.transformationMatrix);
 		PushMat4(app->uniformsBuffer, worldViewProjection);
+		PushUInt(app->uniformsBuffer, entity.reflectiveness);
 
 		entity.size = app->uniformsBuffer.head - entity.head;
 	}

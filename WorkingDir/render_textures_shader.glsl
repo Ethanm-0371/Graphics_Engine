@@ -28,12 +28,15 @@ layout(binding = 1, std140) uniform LocalParams
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
+	int reflectiveness;
 };
 
 out vec2 vTexCoord;
 out vec3 vPosition; //In worldspace
 out vec3 vNormal; //In worldspace
 out vec3 vViewDir;
+
+out float entityReflectiveness;
 
 void main()
 {
@@ -49,6 +52,7 @@ void main()
 	vPosition = vec3( uWorldMatrix * vec4(aPosition, 1.0) );
 	vNormal = vec3( uWorldMatrix * vec4(aNormal, 0.0) );
 	vViewDir = uCameraPosition - vPosition;
+	entityReflectiveness = float(reflectiveness) / 100.0f;
 	gl_Position = uWorldViewProjectionMatrix * vec4(aPosition, 1.0);
 }
 
@@ -59,6 +63,8 @@ in vec2 vTexCoord;
 in vec3 vPosition;
 in vec3 vNormal;
 in vec3 vViewDir;
+
+in float entityReflectiveness;
 
 uniform sampler2D uTexture;
 uniform samplerCube cubeTexture;
@@ -83,7 +89,7 @@ void main()
 	vec3 skyboxColor = texture(cubeTexture, R).rgb;
 	vec3 albedoColor = texture(uTexture, vTexCoord).rgb;
 
-	rt0 = vec4(mix(albedoColor, skyboxColor, 0.2f), 1.0);
+	rt0 = vec4(mix(albedoColor, skyboxColor, entityReflectiveness), 1.0);
 	rt1 = vec4(normalize(vNormal), 1.0);
 	rt2 = vec4(vPosition, 1.0);
 

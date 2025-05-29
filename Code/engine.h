@@ -167,6 +167,7 @@ struct Entity
 	//vec3 scale;
 	mat4 transformationMatrix;
 	u32 model;
+	u32 reflectiveness;
 
 	u32 head;
 	u32 size;
