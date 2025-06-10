@@ -132,7 +132,8 @@ enum RenderTextureMode
 	RendTexMode_Normals,
 	RendTexMode_Position,
 	RendTexMode_Depth,
-	RendTexMode_Deferred,
+	RendTexMode_DeferredOnly,
+	RendTexMode_DeferredBloom,
 	RendTexMode_Count
 };
 
@@ -232,6 +233,7 @@ struct App
 	u32 skyboxProgramIdx;
 	u32 skyboxReflectionProgramIdx;
 	u32 blurPassProgramIdx;
+	u32 bloomMixProgramIdx;
 
 	// texture indices
 	u32 diceTexIdx;
@@ -290,6 +292,14 @@ struct App
 
 	//
 	GLuint bloom_brightColorImage;
+	GLuint bloomStrengthLocation;
+	GLuint bloomIterationsLocation;
+	float bloomStrength = 2.0f;
+	int bloomIterations = 25;
+
+	//
+	GLuint bloom_blurredImage;
+	GLuint bloom_originalImage;
 
 	// VAOs
 	GLuint targetQuad_vao;
@@ -316,6 +326,7 @@ struct App
 	GLuint deferredAttachmentHandle;
 	GLuint brightColorsAttachmentHandle;
 	GLuint blurredColorsAttachmentHandle;
+	GLuint mixedBlurImage;
 
 	GLuint frameBufferAttachmentHandle;
 

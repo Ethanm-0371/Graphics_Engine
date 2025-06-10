@@ -145,6 +145,7 @@ void GenFrameBuffers(App* app)
 	GenerateTextureBuffer(app, app->deferredAttachmentHandle);
 	GenerateTextureBuffer(app, app->brightColorsAttachmentHandle);
 	GenerateTextureBuffer(app, app->blurredColorsAttachmentHandle);
+	GenerateTextureBuffer(app, app->mixedBlurImage);
 
 	//Create the Frame Buffer where all the textures will be stored
 	glGenFramebuffers(1, &app->deferredFrameBufferHandle);
@@ -156,6 +157,7 @@ void GenFrameBuffers(App* app)
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, app->brightColorsAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, app->blurredColorsAttachmentHandle, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, app->mixedBlurImage, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
 	GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -442,6 +444,15 @@ void Init(App* app)
 	Program& blurProgram = app->programs[app->blurPassProgramIdx];
 
 	app->bloom_brightColorImage = glGetUniformLocation(blurProgram.handle, "brightColorImage");
+	app->bloomStrengthLocation = glGetUniformLocation(blurProgram.handle, "strength");
+	app->bloomIterationsLocation = glGetUniformLocation(blurProgram.handle, "iterations");
+
+	// Bloom mix
+	app->bloomMixProgramIdx = LoadProgram(app, "bloom_pass.glsl", "MIX_BLOOM");
+	Program& bloomMixProgram = app->programs[app->bloomMixProgramIdx];
+
+	app->bloom_blurredImage = glGetUniformLocation(bloomMixProgram.handle, "blurredImage");
+	app->bloom_originalImage = glGetUniformLocation(bloomMixProgram.handle, "originalColor");	
 
 	//Skybox
 	app->skyboxProgramIdx = LoadProgram(app, "skybox_shader.glsl", "SKYBOX"); //This is used to render a mesh
@@ -572,7 +583,7 @@ void Init(App* app)
 	// Set default render mode ----------------------------------------------------------------------------------------
 
 	app->mode = Mode_DeferredRenderTextures;
-	app->renderTexMode = RendTexMode_Deferred;
+	app->renderTexMode = RendTexMode_DeferredBloom;
 	app->currentSkybox = 0;
 }
 
@@ -616,7 +627,7 @@ void RenderingModesWindow(App* app)
 
 	if (app->mode == Mode_DeferredRenderTextures)
 	{
-		const char* renderTexTags[] = { "Albedo", "Normals", "Position", "Depth", "Final image" };
+		const char* renderTexTags[] = { "Albedo", "Normals", "Position", "Depth", "Deferred Only", "Deferred + Bloom (Final image)"};
 		if (ImGui::BeginCombo("Render Textures", renderTexTags[app->renderTexMode]))
 		{
 			for (int n = 0; n < ARRAY_COUNT(renderTexTags); n++)
@@ -632,6 +643,9 @@ void RenderingModesWindow(App* app)
 			ImGui::EndCombo();
 		}
 	}
+
+	ImGui::SliderFloat("Bloom strength", (float*)&app->bloomStrength, 0.0f, 100.0f, "%.1f");
+	ImGui::SliderInt("Bloom iterations", (int*)&app->bloomIterations, 0, 50, "%i");
 
 	ImGui::End();
 }
@@ -1216,12 +1230,41 @@ void RenderBloom(App* app)
 	glUniform1i(app->bloom_brightColorImage, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, app->brightColorsAttachmentHandle);
+
+	//Send float and int uniforms
+	glUniform1f(app->bloomStrengthLocation, app->bloomStrength);
+	glUniform1i(app->bloomIterationsLocation, app->bloomIterations);
+
+
 	glDrawBuffer(GL_COLOR_ATTACHMENT5);
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-	glBindVertexArray(0);
 	glUseProgram(0);
 
+	//--------------------------------------------------------------------------------------------------------------------
+
+	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+	Program& bloomMixProgram = app->programs[app->bloomMixProgramIdx];
+	glUseProgram(bloomMixProgram.handle);
+	//glBindVertexArray(app->targetQuad_vao);
+
+	glUniform1i(app->bloom_blurredImage, 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, app->blurredColorsAttachmentHandle);
+
+	glUniform1i(app->bloom_originalImage, 1);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, app->deferredAttachmentHandle);
+
+
+	glDrawBuffer(GL_COLOR_ATTACHMENT6);
+
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+	glUseProgram(0);
+
+
+	glBindVertexArray(0);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -1306,7 +1349,8 @@ void Render(App* app)
 		case RendTexMode_Normals:  textureHandle = app->normalsAttachmentHandle; break;
 		case RendTexMode_Position: textureHandle = app->positionAttachmentHandle; break;
 		case RendTexMode_Depth:    textureHandle = app->depthAttachmentHandle; break;
-		case RendTexMode_Deferred: textureHandle = app->deferredAttachmentHandle; break;
+		case RendTexMode_DeferredOnly: textureHandle = app->deferredAttachmentHandle; break;
+		case RendTexMode_DeferredBloom: textureHandle = app->mixedBlurImage; break;
 		default: break;
 		}
 
