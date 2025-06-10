@@ -292,6 +292,7 @@ struct App
 
 	//
 	GLuint bloom_brightColorImage;
+	GLuint bloom_horizontalLocation;
 	GLuint bloomStrengthLocation;
 	GLuint bloomIterationsLocation;
 	float bloomStrength = 2.0f;
@@ -325,6 +326,7 @@ struct App
 	GLuint depthAttachmentHandle;
 	GLuint deferredAttachmentHandle;
 	GLuint brightColorsAttachmentHandle;
+	GLuint halfBlurredColorsAttachmentHandle;
 	GLuint blurredColorsAttachmentHandle;
 	GLuint mixedBlurImage;
 

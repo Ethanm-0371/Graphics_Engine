@@ -20,6 +20,7 @@ uniform sampler2D brightColorImage;
 
 uniform float strength;
 uniform int iterations;
+uniform bool horizontal;
 
 layout(location = 0) out vec4 oColor;
 
@@ -28,14 +29,16 @@ void main()
 	vec2 tex_offset = 1.0 / textureSize(brightColorImage, 0);
     vec3 result = texture(brightColorImage, vTexCoord).rgb * exp(-(pow(1,2)/strength));
 
-	for(int x = 0; x < 10; ++x)
+	if (horizontal)
 	{
 		for(int i = 1; i < iterations; ++i)
 		{
 			result += texture(brightColorImage, vTexCoord + vec2(tex_offset.x * i, 0.0)).rgb * exp(-(pow(i,2)/pow(strength,2)));
 			result += texture(brightColorImage, vTexCoord - vec2(tex_offset.x * i, 0.0)).rgb * exp(-(pow(i,2)/pow(strength,2)));
 		}
-
+	}
+	else
+	{
 		for(int i = 1; i < iterations; ++i)
 		{
 			result += texture(brightColorImage, vTexCoord + vec2(0.0, tex_offset.y * i)).rgb * exp(-(pow(i,2)/pow(strength,2)));

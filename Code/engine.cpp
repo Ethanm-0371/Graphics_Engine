@@ -144,6 +144,7 @@ void GenFrameBuffers(App* app)
 	GenerateTextureBuffer(app, app->positionAttachmentHandle);
 	GenerateTextureBuffer(app, app->deferredAttachmentHandle);
 	GenerateTextureBuffer(app, app->brightColorsAttachmentHandle);
+	GenerateTextureBuffer(app, app->halfBlurredColorsAttachmentHandle);
 	GenerateTextureBuffer(app, app->blurredColorsAttachmentHandle);
 	GenerateTextureBuffer(app, app->mixedBlurImage);
 
@@ -156,8 +157,9 @@ void GenFrameBuffers(App* app)
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->positionAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, app->brightColorsAttachmentHandle, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, app->blurredColorsAttachmentHandle, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, app->mixedBlurImage, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, app->halfBlurredColorsAttachmentHandle, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT6, GL_TEXTURE_2D, app->blurredColorsAttachmentHandle, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT7, GL_TEXTURE_2D, app->mixedBlurImage, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
 	GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -444,6 +446,7 @@ void Init(App* app)
 	Program& blurProgram = app->programs[app->blurPassProgramIdx];
 
 	app->bloom_brightColorImage = glGetUniformLocation(blurProgram.handle, "brightColorImage");
+	app->bloom_horizontalLocation = glGetUniformLocation(blurProgram.handle, "horizontal");
 	app->bloomStrengthLocation = glGetUniformLocation(blurProgram.handle, "strength");
 	app->bloomIterationsLocation = glGetUniformLocation(blurProgram.handle, "iterations");
 
@@ -1227,16 +1230,34 @@ void RenderBloom(App* app)
 	glUseProgram(blurProgram.handle);
 	glBindVertexArray(app->targetQuad_vao);
 
-	glUniform1i(app->bloom_brightColorImage, 0);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, app->brightColorsAttachmentHandle);
-
 	//Send float and int uniforms
 	glUniform1f(app->bloomStrengthLocation, app->bloomStrength);
 	glUniform1i(app->bloomIterationsLocation, app->bloomIterations);
 
+	for (int i = 0; i < 10; i++)
+	{
+		if (i < 5)
+		{
+			glUniform1i(app->bloom_brightColorImage, 0);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, app->brightColorsAttachmentHandle);
 
-	glDrawBuffer(GL_COLOR_ATTACHMENT5);
+			glUniform1i(app->bloom_horizontalLocation, 1); //True
+
+			glDrawBuffer(GL_COLOR_ATTACHMENT5);
+		}
+		else
+		{
+			glUniform1i(app->bloom_brightColorImage, 0);
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, app->halfBlurredColorsAttachmentHandle);
+
+			glUniform1i(app->bloom_horizontalLocation, 0); //False
+
+			glDrawBuffer(GL_COLOR_ATTACHMENT6);
+		}
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+	}
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 	glUseProgram(0);
@@ -1258,7 +1279,7 @@ void RenderBloom(App* app)
 	glBindTexture(GL_TEXTURE_2D, app->deferredAttachmentHandle);
 
 
-	glDrawBuffer(GL_COLOR_ATTACHMENT6);
+	glDrawBuffer(GL_COLOR_ATTACHMENT7);
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 	glUseProgram(0);
