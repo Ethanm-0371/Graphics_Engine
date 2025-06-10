@@ -181,6 +181,12 @@
       <AdditionalLibraryDirectories>$(ProjectDir)\ThirdParty\glfw\lib-vc2019;$(ProjectDir)\ThirdParty\Assimp\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>mkdir "$(ProjectDir)x64\Build"
+
+xcopy /E /I /Y "$(ProjectDir)x64\Release\*" "$(ProjectDir)x64\Build\"
+xcopy /E /I /Y "$(ProjectDir)WorkingDir\*" "$(ProjectDir)x64\Build\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
