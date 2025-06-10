@@ -144,6 +144,7 @@ void GenFrameBuffers(App* app)
 	GenerateTextureBuffer(app, app->positionAttachmentHandle);
 	GenerateTextureBuffer(app, app->deferredAttachmentHandle);
 	GenerateTextureBuffer(app, app->brightColorsAttachmentHandle);
+	GenerateTextureBuffer(app, app->blurredColorsAttachmentHandle);
 
 	//Create the Frame Buffer where all the textures will be stored
 	glGenFramebuffers(1, &app->deferredFrameBufferHandle);
@@ -154,6 +155,7 @@ void GenFrameBuffers(App* app)
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->positionAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, app->brightColorsAttachmentHandle, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT5, GL_TEXTURE_2D, app->blurredColorsAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
 	GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -436,10 +438,10 @@ void Init(App* app)
 	Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
 
 	// Bloom
-	app->bloomPassProgramIdx = LoadProgram(app, "bloom_pass.glsl", "BLUR_PASS");
-	Program& bloomProgram = app->programs[app->bloomPassProgramIdx];
+	app->blurPassProgramIdx = LoadProgram(app, "bloom_pass.glsl", "BLUR_PASS");
+	Program& blurProgram = app->programs[app->blurPassProgramIdx];
 
-	app->bloom_brightColorImage = glGetUniformLocation(bloomProgram.handle, "brightColorImage");
+	app->bloom_brightColorImage = glGetUniformLocation(blurProgram.handle, "brightColorImage");
 
 	//Skybox
 	app->skyboxProgramIdx = LoadProgram(app, "skybox_shader.glsl", "SKYBOX"); //This is used to render a mesh
@@ -1130,7 +1132,7 @@ void DeferredLightingPass(App* app)
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void RenderLightGizmos(App* app)
@@ -1201,6 +1203,26 @@ void RenderSkybox(App* app)
 	glDisable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	glBindVertexArray(0);
 	glUseProgram(0);
+}
+
+void RenderBloom(App* app) 
+{
+	glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+	Program& blurProgram = app->programs[app->blurPassProgramIdx];
+	glUseProgram(blurProgram.handle);
+	glBindVertexArray(app->targetQuad_vao);
+
+	glUniform1i(app->bloom_brightColorImage, 0);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, app->brightColorsAttachmentHandle);
+	glDrawBuffer(GL_COLOR_ATTACHMENT5);
+
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+	glBindVertexArray(0);
+	glUseProgram(0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void PostRenderPass(App* app)

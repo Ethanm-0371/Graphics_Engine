@@ -282,6 +282,7 @@ struct App
 	GLuint deferredLightingPass_posTexture;
 	GLuint deferredLightingPass_normalTexture;
 	GLuint deferredLightingPass_albedoTexture;
+	GLuint deferredLightingPass_brightColors;
 
 	// Location of the texture uniforms in the skybox shader???
 	GLuint skybox_uMatrix;
