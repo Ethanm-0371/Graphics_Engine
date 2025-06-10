@@ -143,6 +143,7 @@ void GenFrameBuffers(App* app)
 	GenerateTextureBuffer(app, app->normalsAttachmentHandle);
 	GenerateTextureBuffer(app, app->positionAttachmentHandle);
 	GenerateTextureBuffer(app, app->deferredAttachmentHandle);
+	GenerateTextureBuffer(app, app->brightColorsAttachmentHandle);
 
 	//Create the Frame Buffer where all the textures will be stored
 	glGenFramebuffers(1, &app->deferredFrameBufferHandle);
@@ -152,6 +153,7 @@ void GenFrameBuffers(App* app)
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, app->normalsAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, app->positionAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, GL_TEXTURE_2D, app->deferredAttachmentHandle, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, GL_TEXTURE_2D, app->brightColorsAttachmentHandle, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, app->depthAttachmentHandle, 0);
 
 	GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -432,6 +434,12 @@ void Init(App* app)
 	// Lights Visualization
 	app->lightVisualizationProgramIdx = LoadProgram(app, "light_visualization_shader.glsl", "LIGHT_VISUALIZATION"); //This is used to render a mesh
 	Program& lightVisProgram = app->programs[app->lightVisualizationProgramIdx];
+
+	// Bloom
+	app->bloomPassProgramIdx = LoadProgram(app, "bloom_pass.glsl", "BLUR_PASS");
+	Program& bloomProgram = app->programs[app->bloomPassProgramIdx];
+
+	app->bloom_brightColorImage = glGetUniformLocation(bloomProgram.handle, "brightColorImage");
 
 	//Skybox
 	app->skyboxProgramIdx = LoadProgram(app, "skybox_shader.glsl", "SKYBOX"); //This is used to render a mesh
@@ -1108,8 +1116,16 @@ void DeferredLightingPass(App* app)
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, app->albedoAttachmentHandle);
 
+	//glDrawBuffer(GL_COLOR_ATTACHMENT3); //Deferred
 
-	glDrawBuffer(GL_COLOR_ATTACHMENT3); //Deferred
+	GLuint drawBuffers[] = { GL_COLOR_ATTACHMENT3, // Deferred
+								 GL_COLOR_ATTACHMENT4 }; // Bright colors
+	glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
+
+	//glUniform1i(app->deferredLightingPass_brightColors, 4);
+	//glActiveTexture(GL_TEXTURE4);
+	//glBindTexture(GL_TEXTURE_2D, app->brightColorsAttachmentHandle);
+
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 	glBindVertexArray(0);
 	glUseProgram(0);
@@ -1258,6 +1274,8 @@ void Render(App* app)
 		RenderMeshes(app, app->programs[app->renderTexturesProgramIdx]);
 
 		DeferredLightingPass(app);
+
+		RenderBloom(app);
 
 		GLuint textureHandle = 0;
 		switch (app->renderTexMode)

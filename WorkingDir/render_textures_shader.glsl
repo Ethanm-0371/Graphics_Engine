@@ -28,15 +28,12 @@ layout(binding = 1, std140) uniform LocalParams
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
-	int reflectiveness;
 };
 
 out vec2 vTexCoord;
 out vec3 vPosition; //In worldspace
 out vec3 vNormal; //In worldspace
 out vec3 vViewDir;
-
-out float entityReflectiveness;
 
 void main()
 {
@@ -52,7 +49,6 @@ void main()
 	vPosition = vec3( uWorldMatrix * vec4(aPosition, 1.0) );
 	vNormal = vec3( uWorldMatrix * vec4(aNormal, 0.0) );
 	vViewDir = uCameraPosition - vPosition;
-	entityReflectiveness = float(reflectiveness) / 100.0f;
 	gl_Position = uWorldViewProjectionMatrix * vec4(aPosition, 1.0);
 }
 
@@ -64,10 +60,7 @@ in vec3 vPosition;
 in vec3 vNormal;
 in vec3 vViewDir;
 
-in float entityReflectiveness;
-
 uniform sampler2D uTexture;
-uniform samplerCube cubeTexture;
 
 layout(binding = 0, std140) uniform GlobalParams
 {
@@ -83,13 +76,7 @@ layout(location = 2) out vec4 rt2; //Position
 
 void main()
 {
-	//Skybox reflection
-	vec3 I = normalize(vPosition - uCameraPosition);
-	vec3 R = reflect(I, normalize(vNormal));
-	vec3 skyboxColor = texture(cubeTexture, R).rgb;
-	vec3 albedoColor = texture(uTexture, vTexCoord).rgb;
-
-	rt0 = vec4(mix(albedoColor, skyboxColor, entityReflectiveness), 1.0);
+	rt0 = texture(uTexture, vTexCoord);
 	rt1 = vec4(normalize(vNormal), 1.0);
 	rt2 = vec4(vPosition, 1.0);
 
@@ -134,6 +121,7 @@ layout(binding = 0, std140) uniform GlobalParams
 };
 
 layout(location = 0) out vec4 oColor;
+layout(location = 1) out vec4 brightColor;
 
 void main()
 {
@@ -178,7 +166,17 @@ void main()
 		result += (ambient + diffuse + specular) * texColor;
 	}
 	
-    oColor = vec4(result, 1.0);
+    oColor = vec4(result, 1.0); // FragColor
+	
+    float brightness = dot(oColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if (brightness > 1.0) 
+	{
+        brightColor = vec4(oColor.rgb, 1.0);
+	}
+    else 
+	{
+        brightColor = vec4(0.0, 0.0, 0.0, 1.0);
+	}
 }
 
 #endif

@@ -231,6 +231,7 @@ struct App
 	u32 lightVisualizationProgramIdx;
 	u32 skyboxProgramIdx;
 	u32 skyboxReflectionProgramIdx;
+	u32 blurPassProgramIdx;
 
 	// texture indices
 	u32 diceTexIdx;
@@ -286,6 +287,9 @@ struct App
 	GLuint skybox_uMatrix;
 	GLuint skybox_uTexture;
 
+	//
+	GLuint bloom_brightColorImage;
+
 	// VAOs
 	GLuint targetQuad_vao;
 	GLuint cube_vao;
@@ -309,11 +313,14 @@ struct App
 	GLuint positionAttachmentHandle;
 	GLuint depthAttachmentHandle;
 	GLuint deferredAttachmentHandle;
+	GLuint brightColorsAttachmentHandle;
+	GLuint blurredColorsAttachmentHandle;
 
 	GLuint frameBufferAttachmentHandle;
 
 	GLuint directFrameBufferHandle;
 	GLuint deferredFrameBufferHandle;
+
 
 	// UI
 	bool selectedObjType = false;
