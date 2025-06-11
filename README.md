@@ -1,14 +1,11 @@
 # Graphics Engine
-
 A graphics engine for the Advanced Graphics Programming subject.
 
 ## Members
-
-* Jonathan Cacay Llanes - [xGauss05](https://github.com/xGauss05)
+- Jonathan Cacay Llanes - [xGauss05](https://github.com/xGauss05)
 - Ethan Martín Parra - [Ethanm-0371](https://github.com/Ethanm-0371)
 
 ## Repository
-
 [https://github.com/Ethanm-0371/Graphics_Engine](https://github.com/Ethanm-0371/Graphics_Engine)
 
 ## Effect Techniques Applied
@@ -30,7 +27,6 @@ A graphics engine for the Advanced Graphics Programming subject.
 ![image](https://github.com/user-attachments/assets/ac5068a2-5047-47b4-9c6b-b821e019f324)
 
 ## Controls
-
 ### Camera navigation
 | Key | Description |
 | :----: | :-----------: | 
@@ -39,3 +35,10 @@ A graphics engine for the Advanced Graphics Programming subject.
 | <code>LMB</code> | Camera orbital movement | 
 | <code>Mouse Wheel Up</code> | Zoom in | 
 | <code>Mouse Wheel Down</code> | Zoom out | 
+
+## Technical difficulties during development
+- We encountered difficulties when implementing the skybox — it appeared inverted, and we had to make several adjustments to fix the issue.
+- Regarding bloom, we spent a significant amount of time trying to figure out why the bloom image wasn't appearing in the framebuffer. It turned out that we were unbinding it before we could display the image.
+
+## Things to be improved
+We still need to implement skybox-based lighting, and it would be great to have transform components for entities and being modified in the Inspector, allowing us to add and remove them at runtime.
