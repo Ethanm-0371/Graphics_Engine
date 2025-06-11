@@ -42,3 +42,7 @@ A graphics engine for the Advanced Graphics Programming subject.
 
 ## Things to be improved
 We still need to implement skybox-based lighting, and it would be great to have transform components for entities and being modified in the Inspector, allowing us to add and remove them at runtime.
+
+## Known errors
+- Bloom is not applied to the entire image and so the skybox and others are not affected. This is most likely due to the bloom pass being executed before drawing the skybox, so it overrides it.
+- A last minute error was introduced when implementing the bloom effect. Defferred rendering is the only rendering method that works properly right now. This is most likely due to changing color attachments to support the different render passes for bloom. A buffer or color attachment missmatch or missassignment must have been introduced.
